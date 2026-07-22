@@ -16,6 +16,8 @@ export default function NewProjectDialog({ userId }: { userId: string }) {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { data: sessionData } = await supabase.auth.getSession();
+    alert(`Prop userId: ${userId}\nSession userId: ${sessionData?.session?.user?.id}\nSession exists: ${!!sessionData?.session}`);
     setLoading(true);
     setError(null);
 
