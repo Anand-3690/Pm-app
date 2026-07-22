@@ -16,9 +16,6 @@ export default function NewProjectDialog({ userId }: { userId: string }) {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: sessionData } = await supabase.auth.getSession();
-    const payload = JSON.parse(atob(sessionData?.session?.access_token.split('.')[1] || 'e30='));
-    alert(JSON.stringify(payload, null, 2));
     setLoading(true);
     setError(null);
 
@@ -30,7 +27,6 @@ export default function NewProjectDialog({ userId }: { userId: string }) {
       .single();
 
     if (projectError || !project) {
-      alert(JSON.stringify(projectError, null, 2));
       setError(projectError?.message || 'Failed to create project');
       setLoading(false);
       return;
