@@ -22,7 +22,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             PM App
           </Link>
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-slate-600">{profile?.full_name || profile?.email}</span>
+            <Link href="/dashboard/profile" className="text-slate-600 hover:text-slate-900 hover:underline">
+              {profile?.full_name || profile?.email}
+            </Link>
             <SignOutButton />
           </div>
         </div>
