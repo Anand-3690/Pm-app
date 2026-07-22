@@ -17,6 +17,8 @@ export default function NewProjectDialog({ userId }: { userId: string }) {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession();
+    alert(`Access token sub: ${JSON.parse(atob(sessionData?.session?.access_token.split('.')[1] || 'e30=')).sub}\nExpires at: ${sessionData?.session?.expires_at}\nNow: ${Math.floor(Date.now()/1000)}`);
     alert(`Prop userId: ${userId}\nSession userId: ${sessionData?.session?.user?.id}\nSession exists: ${!!sessionData?.session}`);
     setLoading(true);
     setError(null);
