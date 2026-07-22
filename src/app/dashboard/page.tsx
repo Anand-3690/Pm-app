@@ -2,6 +2,21 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import NewProjectDialog from '@/components/new-project-dialog';
 
+const CARD_THEMES = [
+  { border: 'border-l-indigo-500', bg: 'bg-indigo-50/40' },
+  { border: 'border-l-emerald-500', bg: 'bg-emerald-50/40' },
+  { border: 'border-l-amber-500', bg: 'bg-amber-50/40' },
+  { border: 'border-l-rose-500', bg: 'bg-rose-50/40' },
+  { border: 'border-l-cyan-500', bg: 'bg-cyan-50/40' },
+  { border: 'border-l-violet-500', bg: 'bg-violet-50/40' },
+];
+
+function themeFor(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  return CARD_THEMES[Math.abs(hash) % CARD_THEMES.length];
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -38,11 +53,13 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p: any) => (
+          {projects.map((p: any) => {
+            const theme = themeFor(p.id);
+            return (
             <Link
               key={p.id}
               href={`/dashboard/projects/${p.id}`}
-              className="rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md"
+              className={`rounded-xl border border-l-4 ${theme.border} ${theme.bg} p-5 shadow-sm transition hover:shadow-md hover:-translate-y-0.5`}
             >
               <div className="mb-2 flex items-center justify-between">
                 <span
@@ -77,7 +94,8 @@ export default async function DashboardPage() {
                 Created {new Date(p.created_at).toLocaleDateString()}
               </p>
             </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

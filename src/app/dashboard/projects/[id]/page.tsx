@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import MembersPanel from '@/components/members-panel';
 import TaskBoard from '@/components/task-board';
+import DeleteProjectButton from '@/components/delete-project-button';
 
 export default async function ProjectDetailPage({
   params,
@@ -54,15 +55,18 @@ export default async function ProjectDetailPage({
             <h1 className="text-2xl font-semibold text-slate-900">{project.title}</h1>
             <p className="mt-1 text-sm text-slate-500">{project.description}</p>
           </div>
-          <span
-            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-              project.status === 'active'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-slate-100 text-slate-600'
-            }`}
-          >
-            {project.status.replace('_', ' ')}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                project.status === 'active'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              {project.status.replace('_', ' ')}
+            </span>
+            {isAdmin && <DeleteProjectButton projectId={id} projectTitle={project.title} />}
+          </div>
         </div>
       </div>
 
@@ -78,6 +82,7 @@ export default async function ProjectDetailPage({
         members={(members as any) || []}
         currentUserId={user.id}
         unreadCounts={unreadMap}
+        isAdmin={isAdmin}
       />
     </div>
   );

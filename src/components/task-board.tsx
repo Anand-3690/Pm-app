@@ -28,18 +28,33 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: 'bg-red-100 text-red-700',
 };
 
+const PRIORITY_BORDER: Record<string, string> = {
+  low: 'border-l-slate-300',
+  medium: 'border-l-blue-400',
+  high: 'border-l-amber-400',
+  urgent: 'border-l-red-500',
+};
+
+const COLUMN_BG: Record<string, string> = {
+  todo: 'bg-slate-50',
+  in_progress: 'bg-blue-50/60',
+  done: 'bg-emerald-50/60',
+};
+
 export default function TaskBoard({
   projectId,
   initialTasks,
   members,
   currentUserId,
   unreadCounts = {},
+  isAdmin = false,
 }: {
   projectId: string;
   initialTasks: Task[];
   members: Member[];
   currentUserId: string;
   unreadCounts?: Record<string, number>;
+  isAdmin?: boolean;
 }) {  
   const router = useRouter();
   const supabase = createClient();
@@ -111,14 +126,14 @@ export default function TaskBoard({
                 {tasks.filter((t) => t.status === col.key).length}
               </span>
             </div>
-            <div className="space-y-2">
+            <div className={`space-y-2 rounded-xl p-2 ${COLUMN_BG[col.key]}`}>
               {tasks
                 .filter((t) => t.status === col.key)
                 .map((task) => (
                   <div
                     key={task.id}
                     onClick={() => setActiveTask(task)}
-                    className="cursor-pointer rounded-lg border bg-white p-3 shadow-sm hover:shadow-md"
+                    className={`cursor-pointer rounded-lg border border-l-4 ${PRIORITY_BORDER[task.priority]} bg-white p-3 shadow-sm transition hover:shadow-md hover:-translate-y-0.5`}
                   >
                     <div className="mb-1.5 flex items-start justify-between gap-2">
                       <p className="text-sm font-medium text-slate-900">{task.title}</p>
@@ -252,6 +267,7 @@ export default function TaskBoard({
           task={activeTask}
           members={members}
           currentUserId={currentUserId}
+          isAdmin={isAdmin}
           onClose={() => {
             setActiveTask(null);
             router.refresh();

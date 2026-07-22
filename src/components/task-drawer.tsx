@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { avatarColor } from '@/lib/avatar-color';
 import TaskMediaPanel from './task-media-panel';
+import TaskParticipants from './task-participants';
 import type { Task, Message } from '@/lib/types';
 
 type Member = {
@@ -22,12 +23,14 @@ export default function TaskDrawer({
   task,
   members,
   currentUserId,
+  isAdmin,
   onClose,
   onStatusChange,
 }: {
   task: Task;
   members: Member[];
   currentUserId: string;
+  isAdmin: boolean;
   onClose: () => void;
   onStatusChange: (status: Task['status']) => void;
 }) {
@@ -224,6 +227,13 @@ export default function TaskDrawer({
                   → {task.assignee.full_name || task.assignee.email}
                 </span>
               )}
+            </div>
+            <div className="mt-2">
+              <TaskParticipants
+                taskId={task.id}
+                members={members}
+                canManage={isAdmin || task.created_by === currentUserId}
+              />
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
