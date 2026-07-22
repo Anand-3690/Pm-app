@@ -28,8 +28,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm space-y-6 rounded-xl border bg-white p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-rose-50 px-4">
+      <div className="w-full max-w-sm space-y-6 rounded-xl border bg-white/90 p-8 shadow-lg backdrop-blur-sm">
         <div>
           <h1 className="text-2xl font-semibold">Welcome back</h1>
           <p className="text-sm text-slate-500">Sign in to your projects</p>

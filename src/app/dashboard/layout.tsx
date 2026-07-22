@@ -15,8 +15,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .single();
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-rose-50">
+      <header className="border-b bg-white/70 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link href="/dashboard" className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text font-bold text-transparent">
             SEVAK

@@ -37,9 +37,9 @@ const PRIORITY_BORDER: Record<string, string> = {
 };
 
 const COLUMN_BG: Record<string, string> = {
-  todo: 'bg-slate-50',
-  in_progress: 'bg-blue-50/60',
-  done: 'bg-emerald-50/60',
+  todo: 'bg-white/60',
+  in_progress: 'bg-blue-50/70',
+  done: 'bg-emerald-50/70',
 };
 
 export default function TaskBoard({
