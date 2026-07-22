@@ -29,10 +29,12 @@ export default function NewProjectDialog({ userId }: { userId: string }) {
       .single();
 
     if (projectError || !project) {
+      alert(JSON.stringify(projectError, null, 2));
       setError(projectError?.message || 'Failed to create project');
       setLoading(false);
       return;
-    }
+}
+
 
     // 2. Add creator as admin member
     const { error: memberError } = await supabase.from('project_members').insert({
