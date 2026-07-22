@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { UserPlus, X, Shield, User as UserIcon } from 'lucide-react';
+import { avatarColor } from '@/lib/avatar-color';
 
 type Member = {
   id: string;
@@ -93,7 +94,7 @@ export default function MembersPanel({
             key={m.id}
             className="flex items-center gap-2 rounded-full border bg-slate-50 py-1 pl-1 pr-3 text-sm"
           >
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs text-white">
+            <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs text-white ${avatarColor(m.profiles.full_name || m.profiles.email || '?')}`}>
               {(m.profiles.full_name || m.profiles.email || '?')[0].toUpperCase()}
             </div>
             <span className="text-slate-700">{m.profiles.full_name || m.profiles.email}</span>

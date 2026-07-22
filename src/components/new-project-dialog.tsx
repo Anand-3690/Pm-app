@@ -58,7 +58,7 @@ export default function NewProjectDialog({ userId }: { userId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        className="flex items-center gap-1.5 rounded-md bg-indigo-800 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
       >
         <Plus size={16} /> New Project
       </button>
@@ -90,7 +90,7 @@ export default function NewProjectDialog({ userId }: { userId: string }) {
               {error && <p className="text-sm text-red-500">{error}</p>}
               <button
                 disabled={loading}
-                className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                className="w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Create Project'}
               </button>

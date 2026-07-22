@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { X, Send, Paperclip, CornerUpLeft, Check, CheckCheck, FileText } from 'lucide-react';
+import {
+  X, Send, Paperclip, CornerUpLeft, Check, CheckCheck, FileText, Image as ImageIcon,
+} from 'lucide-react';
+import { avatarColor } from '@/lib/avatar-color';
+import TaskMediaPanel from './task-media-panel';
 import type { Task, Message } from '@/lib/types';
 
 type Member = {
@@ -11,6 +15,8 @@ type Member = {
   user_id: string;
   profiles: { id: string; full_name: string | null; email: string | null };
 };
+
+type MessageWithReads = Message & { reads?: { user_id: string }[] };
 
 export default function TaskDrawer({
   task,
@@ -26,39 +32,45 @@ export default function TaskDrawer({
   onStatusChange: (status: Task['status']) => void;
 }) {
   const supabase = createClient();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageWithReads[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [sending, setSending] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [showMedia, setShowMedia] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const profileById = (id: string) => members.find((m) => m.user_id === id)?.profiles;
+  const recipientCount = members.length - 1; // everyone except the sender
+
+  const markRead = async (messageIds: string[]) => {
+    if (messageIds.length === 0) return;
+    const rows = messageIds.map((message_id) => ({ message_id, user_id: currentUserId }));
+    await supabase.from('message_reads').upsert(rows, { onConflict: 'message_id,user_id', ignoreDuplicates: true });
+  };
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>;
+    let readsChannel: ReturnType<typeof supabase.channel>;
 
     const load = async () => {
       const { data } = await supabase
         .from('messages')
-        .select('*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url)')
+        .select(
+          '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
+        )
         .eq('task_id', task.id)
         .order('created_at', { ascending: true });
 
       setMessages((data as any) || []);
       setLoading(false);
 
-      const unread = (data || []).filter(
-        (m: any) => m.sender_id !== currentUserId && m.status !== 'read'
+      const unreadFromOthers = (data || []).filter(
+        (m: any) => m.sender_id !== currentUserId
       );
-      if (unread.length > 0) {
-        await supabase
-          .from('messages')
-          .update({ status: 'read' })
-          .in('id', unread.map((m: any) => m.id));
-      }
+      markRead(unreadFromOthers.map((m: any) => m.id));
     };
 
     load();
@@ -71,7 +83,9 @@ export default function TaskDrawer({
         async (payload) => {
           const { data: fullMessage } = await supabase
             .from('messages')
-            .select('*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url)')
+            .select(
+              '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
+            )
             .eq('id', payload.new.id)
             .single();
 
@@ -81,17 +95,26 @@ export default function TaskDrawer({
               return [...prev, fullMessage as any];
             });
             if ((fullMessage as any).sender_id !== currentUserId) {
-              supabase.from('messages').update({ status: 'read' }).eq('id', fullMessage.id).then();
+              markRead([(fullMessage as any).id]);
             }
           }
         }
       )
+      .subscribe();
+
+    readsChannel = supabase
+      .channel(`task-reads-${task.id}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `task_id=eq.${task.id}` },
+        { event: 'INSERT', schema: 'public', table: 'message_reads' },
         (payload) => {
           setMessages((prev) =>
-            prev.map((m) => (m.id === payload.new.id ? { ...m, status: payload.new.status } : m))
+            prev.map((m) => {
+              if (m.id !== payload.new.message_id) return m;
+              const already = (m.reads || []).some((r) => r.user_id === payload.new.user_id);
+              if (already) return m;
+              return { ...m, reads: [...(m.reads || []), { user_id: payload.new.user_id }] };
+            })
           );
         }
       )
@@ -99,6 +122,7 @@ export default function TaskDrawer({
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(readsChannel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task.id]);
@@ -162,10 +186,19 @@ export default function TaskDrawer({
   const formatTime = (iso: string) =>
     new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
+  const renderTicks = (msg: MessageWithReads) => {
+    const readCount = (msg.reads || []).length;
+    if (recipientCount <= 0) return <Check size={13} className="text-slate-400" />;
+    if (readCount >= recipientCount) return <CheckCheck size={13} className="text-blue-500" />;
+    if (readCount > 0) return <CheckCheck size={13} className="text-slate-400" />;
+    return <Check size={13} className="text-slate-400" />;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
-      <div className="flex h-full w-full max-w-lg flex-col bg-white shadow-xl sm:max-w-xl">
-        <div className="flex items-start justify-between border-b px-4 py-3">
+      <div className="relative flex h-full w-full max-w-lg flex-col bg-white shadow-xl sm:max-w-xl">
+        {/* Header */}
+        <div className="flex items-start justify-between border-b bg-gradient-to-r from-indigo-50 to-white px-4 py-3">
           <div className="min-w-0">
             <h2 className="truncate font-semibold text-slate-900">{task.title}</h2>
             {task.description && (
@@ -193,18 +226,26 @@ export default function TaskDrawer({
               )}
             </div>
           </div>
-          <button onClick={onClose} className="shrink-0 rounded p-1 hover:bg-slate-100">
-            <X size={20} className="text-slate-500" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              onClick={() => setShowMedia(true)}
+              title="Shared media"
+              className="rounded p-1.5 text-indigo-500 hover:bg-indigo-100"
+            >
+              <ImageIcon size={18} />
+            </button>
+            <button onClick={onClose} className="rounded p-1.5 hover:bg-slate-100">
+              <X size={20} className="text-slate-500" />
+            </button>
+          </div>
         </div>
 
+        {/* Chat messages */}
         <div className="flex-1 space-y-3 overflow-y-auto bg-[#efeae2] px-3 py-4">
           {loading ? (
             <p className="text-center text-sm text-slate-400">Loading messages...</p>
           ) : messages.length === 0 ? (
-            <p className="text-center text-sm text-slate-400">
-              No messages yet. Say hello 👋
-            </p>
+            <p className="text-center text-sm text-slate-400">No messages yet. Say hello 👋</p>
           ) : (
             messages.map((msg) => {
               const isMine = msg.sender_id === currentUserId;
@@ -212,18 +253,24 @@ export default function TaskDrawer({
               const repliedMsg = msg.reply_to_id
                 ? messages.find((m) => m.id === msg.reply_to_id)
                 : null;
+              const senderLabel = sender?.full_name || sender?.email || 'Unknown';
 
               return (
-                <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                <div key={msg.id} className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  {!isMine && (
+                    <div
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white ${avatarColor(senderLabel)}`}
+                    >
+                      {senderLabel[0].toUpperCase()}
+                    </div>
+                  )}
                   <div
-                    className={`max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${
+                    className={`max-w-[72%] rounded-lg px-3 py-2 shadow-sm ${
                       isMine ? 'bg-[#d9fdd3]' : 'bg-white'
                     }`}
                   >
                     {!isMine && (
-                      <p className="mb-0.5 text-xs font-semibold text-emerald-600">
-                        {sender?.full_name || sender?.email || 'Unknown'}
-                      </p>
+                      <p className="mb-0.5 text-xs font-semibold text-emerald-600">{senderLabel}</p>
                     )}
 
                     {repliedMsg && (
@@ -272,13 +319,7 @@ export default function TaskDrawer({
                         <CornerUpLeft size={11} className="inline" /> reply
                       </button>
                       <span className="text-[10px] text-slate-400">{formatTime(msg.created_at)}</span>
-                      {isMine && (
-                        msg.status === 'read' ? (
-                          <CheckCheck size={13} className="text-blue-500" />
-                        ) : (
-                          <Check size={13} className="text-slate-400" />
-                        )
-                      )}
+                      {isMine && renderTicks(msg)}
                     </div>
                   </div>
                 </div>
@@ -288,6 +329,7 @@ export default function TaskDrawer({
           <div ref={bottomRef} />
         </div>
 
+        {/* Reply preview */}
         {replyTo && (
           <div className="flex items-center justify-between border-t bg-slate-50 px-3 py-2">
             <div className="min-w-0 border-l-2 border-emerald-500 pl-2">
@@ -302,6 +344,7 @@ export default function TaskDrawer({
           </div>
         )}
 
+        {/* Composer */}
         <form onSubmit={handleSend} className="flex items-center gap-2 border-t bg-white px-3 py-2.5">
           <input
             type="file"
@@ -333,6 +376,8 @@ export default function TaskDrawer({
             <Send size={16} />
           </button>
         </form>
+
+        {showMedia && <TaskMediaPanel messages={messages} onClose={() => setShowMedia(false)} />}
       </div>
     </div>
   );

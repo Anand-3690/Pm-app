@@ -13,9 +13,13 @@ export default async function DashboardPage() {
     .eq('user_id', user!.id)
     .order('joined_at', { ascending: false });
 
+  const { data: unreadRows } = await supabase.rpc('unread_counts_by_project');
+  const unreadMap = new Map((unreadRows || []).map((r: any) => [r.project_id, r.unread_count]));
+
   const projects = (memberships || []).map((m: any) => ({
     ...m.projects,
     myRole: m.role,
+    unreadCount: unreadMap.get(m.projects.id) || 0,
   }));
 
   return (
@@ -54,9 +58,16 @@ export default async function DashboardPage() {
                 >
                   {p.status.replace('_', ' ')}
                 </span>
-                <span className="text-xs text-slate-400">
-                  {p.myRole === 'admin' ? 'Admin' : 'Member'}
-                </span>
+                <div className="flex items-center gap-2">
+                  {p.unreadCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-semibold text-white">
+                      {p.unreadCount > 99 ? '99+' : p.unreadCount}
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-400">
+                    {p.myRole === 'admin' ? 'Admin' : 'Member'}
+                  </span>
+                </div>
               </div>
               <h2 className="font-semibold text-slate-900">{p.title}</h2>
               <p className="mt-1 line-clamp-2 text-sm text-slate-500">

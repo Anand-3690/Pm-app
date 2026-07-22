@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Plus, X, Calendar, MessageSquare } from 'lucide-react';
 import TaskDrawer from './task-drawer';
+import { avatarColor } from '@/lib/avatar-color';
 import type { Task } from '@/lib/types';
 
 type Member = {
@@ -32,12 +33,14 @@ export default function TaskBoard({
   initialTasks,
   members,
   currentUserId,
+  unreadCounts = {},
 }: {
   projectId: string;
   initialTasks: Task[];
   members: Member[];
   currentUserId: string;
-}) {
+  unreadCounts?: Record<string, number>;
+}) {  
   const router = useRouter();
   const supabase = createClient();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
@@ -93,7 +96,7 @@ export default function TaskBoard({
         <h2 className="font-semibold text-slate-900">Tasks</h2>
         <button
           onClick={() => setNewOpen(true)}
-          className="flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           <Plus size={16} /> New Task
         </button>
@@ -133,7 +136,7 @@ export default function TaskBoard({
                     <div className="flex items-center justify-between text-xs text-slate-400">
                       <div className="flex items-center gap-1">
                         {task.assignee ? (
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] text-white">
+                          <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] text-white ${avatarColor(task.assignee.full_name || task.assignee.email || '?')}`}>
                             {(task.assignee.full_name || task.assignee.email || '?')[0].toUpperCase()}
                           </span>
                         ) : (
@@ -150,7 +153,14 @@ export default function TaskBoard({
                             })}
                           </span>
                         )}
-                        <MessageSquare size={12} />
+                        <span className="relative flex items-center">
+                          <MessageSquare size={12} />
+                          {unreadCounts[task.id] > 0 && (
+                            <span className="absolute -right-2 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-bold text-white">
+                              {unreadCounts[task.id] > 9 ? '9+' : unreadCounts[task.id]}
+                            </span>
+                          )}
+                        </span>
                       </div>
                     </div>
                     {col.key !== 'done' && (
@@ -228,7 +238,7 @@ export default function TaskBoard({
               </select>
               <button
                 disabled={loading}
-                className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                className="w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Create Task'}
               </button>
@@ -242,7 +252,10 @@ export default function TaskBoard({
           task={activeTask}
           members={members}
           currentUserId={currentUserId}
-          onClose={() => setActiveTask(null)}
+          onClose={() => {
+            setActiveTask(null);
+            router.refresh();
+          }}
           onStatusChange={(status) => {
             updateStatus(activeTask.id, status);
             setActiveTask({ ...activeTask, status });

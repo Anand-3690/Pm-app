@@ -37,6 +37,9 @@ export default async function ProjectDetailPage({
     .eq('project_id', id)
     .order('created_at', { ascending: false });
 
+  const { data: unreadRows } = await supabase.rpc('unread_counts_by_task', { project_id_param: id });
+  const unreadMap = Object.fromEntries((unreadRows || []).map((r: any) => [r.task_id, r.unread_count]));
+
   return (
     <div className="space-y-6">
       <div>
@@ -74,6 +77,7 @@ export default async function ProjectDetailPage({
         initialTasks={(tasks as any) || []}
         members={(members as any) || []}
         currentUserId={user.id}
+        unreadCounts={unreadMap}
       />
     </div>
   );

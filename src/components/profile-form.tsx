@@ -123,7 +123,7 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
 
       <button
         disabled={saving || uploading}
-        className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+        className="w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </button>

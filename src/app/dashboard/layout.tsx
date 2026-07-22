@@ -18,8 +18,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="min-h-screen bg-slate-50">
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link href="/dashboard" className="font-semibold text-slate-900">
-            PM App
+          <Link href="/dashboard" className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text font-bold text-transparent">
+            SEVAK
           </Link>
           <div className="flex items-center gap-3 text-sm">
             <Link href="/dashboard/profile" className="text-slate-600 hover:text-slate-900 hover:underline">
