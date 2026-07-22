@@ -35,7 +35,7 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-rose-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-violet-100 via-sky-50 to-orange-100 px-4">
         <div className="w-full max-w-sm space-y-4 rounded-xl border bg-white/90 p-8 text-center shadow-lg backdrop-blur-sm">
           <h1 className="text-xl font-semibold">Check your email</h1>
           <p className="text-sm text-slate-500">
@@ -51,7 +51,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-rose-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-violet-100 via-sky-50 to-orange-100 px-4">
       <div className="w-full max-w-sm space-y-6 rounded-xl border bg-white/90 p-8 shadow-lg backdrop-blur-sm">
         <div>
           <h1 className="text-2xl font-semibold">Create account</h1>
