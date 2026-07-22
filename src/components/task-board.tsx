@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Plus, X, Calendar, MessageSquare } from 'lucide-react';
 import TaskDrawer from './task-drawer';
+import TaskParticipants from './task-participants';
 import { avatarColor } from '@/lib/avatar-color';
 import type { Task } from '@/lib/types';
 
@@ -148,6 +149,13 @@ export default function TaskBoard({
                         {task.description}
                       </p>
                     )}
+                    <div onClick={(e) => e.stopPropagation()} className="mb-2">
+                      <TaskParticipants
+                        taskId={task.id}
+                        members={members}
+                        canManage={isAdmin || task.created_by === currentUserId}
+                      />
+                    </div>
                     <div className="flex items-center justify-between text-xs text-slate-400">
                       <div className="flex items-center gap-1">
                         {task.assignee ? (
