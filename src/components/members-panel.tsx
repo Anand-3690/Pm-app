@@ -50,12 +50,14 @@ export default function MembersPanel({
 
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
-      const { data } = await supabase
+      const { data , error } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .or(`full_name.ilike.%${query.trim()}%,email.ilike.%${query.trim()}%`)
         .limit(8);
-
+      if (error) {
+        console.error('Member search error:', error);
+      }
       setResults((data || []).filter((p: any) => !existingIds.has(p.id)));
       setSearching(false);
     }, 300);
