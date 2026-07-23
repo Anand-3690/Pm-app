@@ -30,7 +30,7 @@ export default function MembersPanel({
 }) {
   const router = useRouter();
   const supabase = createClient();
-    const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProfileResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -53,7 +53,7 @@ export default function MembersPanel({
       const { data , error } = await supabase
         .from('profiles')
         .select('id, full_name, email')
-        .or(`full_name.ilike.%${query.trim()}%,email.ilike.%${query.trim()}%`)
+        .or(`full_name.ilike."%${query.trim()}%",email.ilike."%${query.trim()}%"`)
         .limit(8);
       if (error) {
         console.error('Member search error:', error);
