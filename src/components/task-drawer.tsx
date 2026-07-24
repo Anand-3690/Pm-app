@@ -220,13 +220,13 @@ export default function TaskDrawer({
 
   const renderTicks = (msg: MessageWithReads) => {
     const readCount = (msg.reads || []).length;
-    if (recipientCount <= 0) return <Check size={13} className="text-slate-400" />;
-    if (readCount >= recipientCount) return <CheckCheck size={13} className="text-blue-500" />;
-    if (readCount > 0) return <CheckCheck size={13} className="text-slate-400" />;
-    return <Check size={13} className="text-slate-400" />;
+    if (recipientCount <= 0) return <Check size={13} className="text-ink-4" />;
+    if (readCount >= recipientCount) return <CheckCheck size={13} className="text-signal" />;
+    if (readCount > 0) return <CheckCheck size={13} className="text-ink-4" />;
+    return <Check size={13} className="text-ink-4" />;
   };
 
-  const renderAttachment = (msg: MessageWithReads) => {
+  const renderAttachment = (msg: MessageWithReads, isMine: boolean) => {
     if (!msg.attachment_url) return null;
 
     const key = msg.attachment_url;
@@ -235,11 +235,11 @@ export default function TaskDrawer({
 
     if (msg.attachment_type === 'image') {
       if (pending) {
-        return <div className="mb-1 h-40 w-40 animate-pulse rounded-md bg-black/10" />;
+        return <div className="mb-1 h-40 w-40 animate-pulse rounded-lg bg-line" />;
       }
       if (!href) {
         return (
-          <div className="mb-1 rounded-md bg-black/5 px-2 py-3 text-center text-[11px] text-slate-500">
+          <div className="mb-1 rounded-lg bg-chip px-3 py-3 text-center text-[11px] text-ink-3">
             Image no longer available
           </div>
         );
@@ -249,17 +249,20 @@ export default function TaskDrawer({
           <img
             src={href}
             alt={msg.content || 'attachment'}
-            className="mb-1 max-h-64 rounded-md object-cover"
+            className="mb-1 max-h-64 rounded-lg object-cover"
           />
         </a>
       );
     }
 
     if (msg.attachment_type === 'file') {
+      const shell = isMine ? 'bg-surface/70' : 'bg-chip';
       if (!href) {
         return (
-          <div className="mb-1 flex items-center gap-2 rounded bg-black/5 px-2 py-1.5 text-xs text-slate-500 opacity-70">
-            <FileText size={14} />
+          <div
+            className={`mb-1 flex items-center gap-2 rounded-lg border-l-[3px] border-l-line px-2.5 py-2 text-xs text-ink-3 ${shell}`}
+          >
+            <FileText size={16} className="shrink-0" />
             <span className="truncate">{msg.content}</span>
             <span className="ml-auto shrink-0 text-[10px]">
               {pending ? 'Loading…' : 'unavailable'}
@@ -272,9 +275,10 @@ export default function TaskDrawer({
           href={href}
           target="_blank"
           rel="noreferrer"
-          className="mb-1 flex items-center gap-2 rounded bg-black/5 px-2 py-1.5 text-xs text-slate-700 hover:bg-black/10"
+          className={`mb-1 flex items-center gap-2.5 rounded-lg border-l-[3px] border-l-signal px-2.5 py-2 text-xs text-ink transition-colors hover:bg-chip ${shell}`}
         >
-          <FileText size={14} /> {msg.content}
+          <FileText size={16} className="shrink-0 text-signal-ink" />
+          <span className="truncate font-medium">{msg.content}</span>
         </a>
       );
     }
@@ -283,36 +287,38 @@ export default function TaskDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
-      <div className="relative flex h-full w-full max-w-lg flex-col bg-white shadow-xl sm:max-w-xl">
+    <div className="fixed inset-0 z-50 flex justify-end bg-ink/40">
+      <div className="relative flex h-full w-full max-w-lg flex-col bg-surface sm:max-w-xl">
         {/* Header */}
-        <div className="flex items-start justify-between border-b bg-gradient-to-r from-indigo-50 to-white px-4 py-3">
+        <div className="flex items-start justify-between gap-3 border-b border-line bg-surface px-4 py-3">
           <div className="min-w-0">
-            <h2 className="truncate font-semibold text-slate-900">{task.title}</h2>
+            <h2 className="truncate font-display text-lg font-bold text-ink">{task.title}</h2>
             {task.description && (
-              <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{task.description}</p>
+              <p className="mt-0.5 line-clamp-2 text-xs text-ink-3">{task.description}</p>
             )}
+
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <select
                 value={task.status}
                 onChange={(e) => onStatusChange(e.target.value as Task['status'])}
-                className="rounded border px-2 py-1 text-xs text-slate-600"
+                className="rounded-md border border-line bg-ground px-2 py-1 text-xs text-ink-2 outline-none focus:border-signal"
               >
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
+                <option value="todo">To do</option>
+                <option value="in_progress">In progress</option>
                 <option value="done">Done</option>
               </select>
               {task.due_date && (
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-ink-3">
                   Due {new Date(task.due_date).toLocaleDateString()}
                 </span>
               )}
               {task.assignee && (
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-ink-3">
                   → {task.assignee.full_name || task.assignee.email}
                 </span>
               )}
             </div>
+
             <div className="mt-2">
               <TaskParticipants
                 taskId={task.id}
@@ -321,26 +327,32 @@ export default function TaskDrawer({
               />
             </div>
           </div>
+
           <div className="flex shrink-0 items-center gap-1">
             <button
               onClick={() => setShowMedia(true)}
               title="Shared media"
-              className="rounded p-1.5 text-indigo-500 hover:bg-indigo-100"
+              aria-label="Shared media"
+              className="rounded-md p-1.5 text-signal-ink transition-colors hover:bg-signal-tint"
             >
               <ImageIcon size={18} />
             </button>
-            <button onClick={onClose} className="rounded p-1.5 hover:bg-slate-100">
-              <X size={20} className="text-slate-500" />
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="rounded-md p-1.5 text-ink-3 transition-colors hover:bg-chip hover:text-ink"
+            >
+              <X size={20} />
             </button>
           </div>
         </div>
 
         {/* Chat messages */}
-        <div className="flex-1 space-y-3 overflow-y-auto bg-[#efeae2] px-3 py-4">
+        <div className="flex-1 space-y-2.5 overflow-y-auto bg-[#f4f1ec] px-3 py-4">
           {loading ? (
-            <p className="text-center text-sm text-slate-400">Loading messages...</p>
+            <p className="text-center text-sm text-ink-3">Loading messages…</p>
           ) : messages.length === 0 ? (
-            <p className="text-center text-sm text-slate-400">No messages yet. Say hello 👋</p>
+            <p className="text-center text-sm text-ink-3">No messages yet. Say hello.</p>
           ) : (
             messages.map((msg, i) => {
               const isMine = msg.sender_id === currentUserId;
@@ -356,59 +368,58 @@ export default function TaskDrawer({
               return (
                 <Fragment key={msg.id}>
                   {showDayDivider && (
-                    <div className="flex justify-center py-1">
-                      <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur">
-                        {dayLabel(msg.created_at)}
-                      </span>
+                    <div className="flex justify-center py-2">
+                      <span className="stamp bg-chip text-ink-2">{dayLabel(msg.created_at)}</span>
                     </div>
                   )}
 
                   <div className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
                     {!isMine && (
                       <div
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white ${avatarColor(senderLabel)}`}
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white ${avatarColor(senderLabel)}`}
                       >
                         {senderLabel[0].toUpperCase()}
                       </div>
                     )}
+
                     <div
-                      className={`max-w-[72%] rounded-lg px-3 py-2 shadow-sm ${
-                        isMine ? 'bg-[#d9fdd3]' : 'bg-white'
+                      className={`max-w-[76%] rounded-[10px] border px-3 py-2 ${
+                        isMine ? 'border-[#ffd9c2] bg-signal-tint' : 'border-line bg-surface'
                       }`}
                     >
                       {!isMine && (
-                        <p className="mb-0.5 text-xs font-semibold text-emerald-600">{senderLabel}</p>
+                        <p className="rule-label mb-0.5 text-signal-ink">{senderLabel}</p>
                       )}
 
                       {repliedMsg && (
-                        <div className="mb-1.5 rounded border-l-2 border-emerald-500 bg-black/5 px-2 py-1">
-                          <p className="text-[11px] font-medium text-emerald-700">
+                        <div className="mb-1.5 rounded-md border-l-[3px] border-l-signal bg-ink/5 px-2 py-1">
+                          <p className="text-[11px] font-medium text-signal-ink">
                             {repliedMsg.sender_id === currentUserId
                               ? 'You'
                               : repliedMsg.sender?.full_name || 'Unknown'}
                           </p>
-                          <p className="truncate text-[11px] text-slate-600">
+                          <p className="truncate text-[11px] text-ink-2">
                             {repliedMsg.content || 'Attachment'}
                           </p>
                         </div>
                       )}
 
-                      {renderAttachment(msg)}
+                      {renderAttachment(msg, isMine)}
 
                       {!msg.attachment_url && (
-                        <p className="whitespace-pre-wrap break-words text-sm text-slate-800">
+                        <p className="whitespace-pre-wrap break-words text-sm text-ink">
                           {msg.content}
                         </p>
                       )}
 
-                      <div className="mt-1 flex items-center justify-end gap-1">
+                      <div className="mt-1 flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setReplyTo(msg)}
-                          className="mr-auto text-[10px] text-slate-400 hover:text-slate-700"
+                          className="mr-auto text-[10px] text-ink-4 transition-colors hover:text-ink-2"
                         >
                           <CornerUpLeft size={11} className="inline" /> reply
                         </button>
-                        <span className="text-[10px] text-slate-400">{formatTime(msg.created_at)}</span>
+                        <span className="text-[10px] text-ink-4">{formatTime(msg.created_at)}</span>
                         {isMine && renderTicks(msg)}
                       </div>
                     </div>
@@ -422,21 +433,31 @@ export default function TaskDrawer({
 
         {/* Reply preview */}
         {replyTo && (
-          <div className="flex items-center justify-between border-t bg-slate-50 px-3 py-2">
-            <div className="min-w-0 border-l-2 border-emerald-500 pl-2">
-              <p className="text-xs font-medium text-emerald-700">
-                Replying to {replyTo.sender_id === currentUserId ? 'yourself' : replyTo.sender?.full_name || 'Unknown'}
+          <div className="flex items-center justify-between gap-3 border-t border-line bg-ground px-3 py-2">
+            <div className="min-w-0 border-l-[3px] border-l-signal pl-2">
+              <p className="text-xs font-medium text-signal-ink">
+                Replying to{' '}
+                {replyTo.sender_id === currentUserId
+                  ? 'yourself'
+                  : replyTo.sender?.full_name || 'Unknown'}
               </p>
-              <p className="truncate text-xs text-slate-500">{replyTo.content || 'Attachment'}</p>
+              <p className="truncate text-xs text-ink-3">{replyTo.content || 'Attachment'}</p>
             </div>
-            <button onClick={() => setReplyTo(null)}>
-              <X size={14} className="text-slate-400" />
+            <button
+              onClick={() => setReplyTo(null)}
+              aria-label="Cancel reply"
+              className="shrink-0 rounded p-1 text-ink-3 hover:text-ink"
+            >
+              <X size={14} />
             </button>
           </div>
         )}
 
         {/* Composer */}
-        <form onSubmit={handleSend} className="flex items-center gap-2 border-t bg-white px-3 py-2.5">
+        <form
+          onSubmit={handleSend}
+          className="flex items-center gap-2 border-t border-line bg-surface px-3 py-2.5"
+        >
           <input
             type="file"
             ref={fileInputRef}
@@ -448,21 +469,23 @@ export default function TaskDrawer({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingFile}
-            className="shrink-0 rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+            aria-label="Attach a file"
+            className="shrink-0 rounded-full p-2 text-ink-2 transition-colors hover:bg-chip disabled:opacity-50"
           >
             <Paperclip size={20} />
           </button>
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={uploadingFile ? 'Uploading...' : 'Type a message'}
+            placeholder={uploadingFile ? 'Uploading…' : 'Type a message'}
             disabled={uploadingFile}
-            className="flex-1 rounded-full border bg-slate-50 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
+            className="flex-1 rounded-full border border-line bg-ground px-4 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-4 focus:border-signal focus:ring-2 focus:ring-signal/25"
           />
           <button
             type="submit"
             disabled={sending || !text.trim()}
-            className="shrink-0 rounded-full bg-emerald-500 p-2.5 text-white hover:bg-emerald-600 disabled:opacity-40"
+            aria-label="Send"
+            className="shrink-0 rounded-full bg-signal p-2.5 text-white transition-colors hover:bg-signal-hover disabled:opacity-40"
           >
             <Send size={16} />
           </button>

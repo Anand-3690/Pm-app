@@ -38,15 +38,19 @@ export default function TaskMediaPanel({
   }, [messages]);
 
   return (
-    <div className="absolute inset-0 z-10 flex flex-col bg-white">
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <h3 className="font-semibold text-slate-900">Shared in this task</h3>
-        <button onClick={onClose} className="rounded p-1 hover:bg-slate-100">
-          <X size={18} className="text-slate-500" />
+    <div className="absolute inset-0 z-10 flex flex-col bg-surface">
+      <div className="flex items-center justify-between border-b border-line px-4 py-3">
+        <h3 className="font-display text-lg font-bold text-ink">Shared in this task</h3>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="rounded-md p-1 text-ink-3 transition-colors hover:bg-chip hover:text-ink"
+        >
+          <X size={18} />
         </button>
       </div>
 
-      <div className="flex border-b">
+      <div className="flex border-b border-line">
         {[
           { key: 'media', label: 'Media', icon: ImageIcon, count: images.length },
           { key: 'docs', label: 'Docs', icon: FileText, count: docs.length },
@@ -55,14 +59,14 @@ export default function TaskMediaPanel({
           <button
             key={t.key}
             onClick={() => setTab(t.key as any)}
-            className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 py-2.5 text-sm font-medium ${
+            className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 py-2.5 text-sm font-medium transition-colors ${
               tab === t.key
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500'
+                ? 'border-signal text-signal-ink'
+                : 'border-transparent text-ink-3 hover:text-ink-2'
             }`}
           >
             <t.icon size={14} /> {t.label}
-            {t.count > 0 && <span className="text-xs text-slate-400">({t.count})</span>}
+            {t.count > 0 && <span className="text-xs text-ink-4">({t.count})</span>}
           </button>
         ))}
       </div>
@@ -82,7 +86,7 @@ export default function TaskMediaPanel({
                   return (
                     <div
                       key={m.id}
-                      className="aspect-square animate-pulse rounded-lg bg-slate-100"
+                      className="aspect-square animate-pulse rounded-[10px] bg-chip"
                     />
                   );
                 }
@@ -91,7 +95,7 @@ export default function TaskMediaPanel({
                   return (
                     <div
                       key={m.id}
-                      className="flex aspect-square items-center justify-center rounded-lg bg-slate-100 p-2 text-center text-[10px] text-slate-400"
+                      className="flex aspect-square items-center justify-center rounded-[10px] bg-chip p-2 text-center text-[10px] text-ink-4"
                     >
                       Unavailable
                     </div>
@@ -104,7 +108,7 @@ export default function TaskMediaPanel({
                     href={href}
                     target="_blank"
                     rel="noreferrer"
-                    className="block aspect-square overflow-hidden rounded-lg bg-slate-100"
+                    className="block aspect-square overflow-hidden rounded-[10px] bg-chip"
                   >
                     <img
                       src={href}
@@ -129,14 +133,16 @@ export default function TaskMediaPanel({
 
                 const inner = (
                   <>
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                    <div
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                        href ? 'bg-signal-tint text-signal-ink' : 'bg-chip text-ink-4'
+                      }`}
+                    >
                       <FileText size={16} />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-800">
-                        {m.content}
-                      </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="truncate text-sm font-medium text-ink">{m.content}</p>
+                      <p className="text-xs text-ink-4">
                         {pending
                           ? 'Loading…'
                           : href
@@ -151,7 +157,7 @@ export default function TaskMediaPanel({
                   return (
                     <div
                       key={m.id}
-                      className="flex items-center gap-3 rounded-lg border p-3 opacity-60"
+                      className="flex items-center gap-3 rounded-[10px] border border-line-soft p-3 opacity-70"
                     >
                       {inner}
                     </div>
@@ -164,7 +170,7 @@ export default function TaskMediaPanel({
                     href={href}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-3 rounded-lg border p-3 hover:bg-slate-50"
+                    className="flex items-center gap-3 rounded-[10px] border border-line p-3 transition-colors hover:border-signal"
                   >
                     {inner}
                   </a>
@@ -184,12 +190,12 @@ export default function TaskMediaPanel({
                   href={l.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-3 rounded-lg border p-3 hover:bg-slate-50"
+                  className="flex items-center gap-3 rounded-[10px] border border-line p-3 transition-colors hover:border-signal"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-600">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-chip text-ink-2">
                     <Link2 size={16} />
                   </div>
-                  <p className="truncate text-sm text-cyan-700">{l.url}</p>
+                  <p className="truncate text-sm text-ink-2">{l.url}</p>
                 </a>
               ))}
             </div>
@@ -200,5 +206,5 @@ export default function TaskMediaPanel({
 }
 
 function EmptyState({ label }: { label: string }) {
-  return <p className="pt-10 text-center text-sm text-slate-400">{label}</p>;
+  return <p className="pt-10 text-center text-sm text-ink-4">{label}</p>;
 }
