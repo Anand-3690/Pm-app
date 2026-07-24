@@ -56,11 +56,6 @@ export default function MembersPanel({
         .or(`full_name.ilike.%${query.trim()}%,email.ilike.%${query.trim()}%`)
         .limit(8);
 
-      console.log('Search query:', query.trim());
-      console.log('Raw data:', data);
-      console.log('Error:', error);
-      console.log('Existing IDs:', Array.from(existingIds));
-
       if (error) {
         console.error('Member search error:', error);
       }
@@ -187,7 +182,7 @@ export default function MembersPanel({
                   key={p.id}
                   onClick={() => handleSelect(p)}
                   disabled={loading}
-                  className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-slate-50 disabled:opacity-50"
+                  className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-indigo-50 disabled:opacity-50"
                 >
                   <span
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${avatarColor(p.full_name || p.email || '?')}`}
