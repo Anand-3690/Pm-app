@@ -15,20 +15,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .single();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-100 via-sky-50 to-orange-100">
-      <header className="border-b bg-white/70 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link href="/dashboard" className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text font-bold text-transparent">
-            SEVAK
+    <div className="min-h-screen bg-ground">
+      <header className="sticky top-0 z-30 border-b border-line bg-surface">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <span className="h-5 w-1.5 rounded-full bg-signal" aria-hidden="true" />
+            <span className="font-display text-xl font-bold tracking-wide text-ink">
+              SEVAK
+            </span>
           </Link>
+
           <div className="flex items-center gap-3 text-sm">
-            <Link href="/dashboard/profile" className="text-slate-600 hover:text-slate-900 hover:underline">
+            <Link
+              href="/dashboard/profile"
+              className="max-w-[40vw] truncate text-ink-2 transition-colors hover:text-ink"
+            >
               {profile?.full_name || profile?.email}
             </Link>
             <SignOutButton />
           </div>
         </div>
       </header>
+
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
     </div>
   );
