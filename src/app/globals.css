@@ -21,6 +21,9 @@
   --color-signal-tint: #ffede2;
   --color-signal-ink: #b8480f;
 
+  --color-bubble: #ffbe95;
+  --color-bubble-line: #ff9d68;
+
   --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
 }

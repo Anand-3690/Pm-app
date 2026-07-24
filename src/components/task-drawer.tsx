@@ -384,7 +384,7 @@ export default function TaskDrawer({
 
                     <div
                       className={`max-w-[76%] rounded-[10px] border px-3 py-2 ${
-                        isMine ? 'border-[#ffd9c2] bg-signal-tint' : 'border-line bg-surface'
+                        isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
                       }`}
                     >
                       {!isMine && (
