@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { X, Image as ImageIcon, FileText, Link2 } from 'lucide-react';
 import type { Message } from '@/lib/types';
+import { createClient } from '@/lib/supabase/client';
+import { useSignedUrls } from '@/lib/use-signed-urls';
 
 const URL_REGEX = /https?:\/\/[^\s]+/g;
 
@@ -14,6 +16,8 @@ export default function TaskMediaPanel({
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<'media' | 'docs' | 'links'>('media');
+  const supabase = createClient();
+  const signedUrls = useSignedUrls(supabase, messages);
 
   const images = useMemo(
     () => messages.filter((m) => m.attachment_type === 'image'),
@@ -69,21 +73,47 @@ export default function TaskMediaPanel({
             <EmptyState label="No photos shared yet" />
           ) : (
             <div className="grid grid-cols-3 gap-2">
-              {images.map((m) => (
-                <a
-                  key={m.id}
-                  href={m.attachment_url!}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block aspect-square overflow-hidden rounded-lg bg-slate-100"
-                >
-                  <img
-                    src={m.attachment_url!}
-                    alt={m.content || 'image'}
-                    className="h-full w-full object-cover transition hover:scale-105"
-                  />
-                </a>
-              ))}
+              {images.map((m) => {
+                const key = m.attachment_url!;
+                const href = signedUrls[key];
+                const pending = !(key in signedUrls);
+
+                if (pending) {
+                  return (
+                    <div
+                      key={m.id}
+                      className="aspect-square animate-pulse rounded-lg bg-slate-100"
+                    />
+                  );
+                }
+
+                if (!href) {
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex aspect-square items-center justify-center rounded-lg bg-slate-100 p-2 text-center text-[10px] text-slate-400"
+                    >
+                      Unavailable
+                    </div>
+                  );
+                }
+
+                return (
+                  <a
+                    key={m.id}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block aspect-square overflow-hidden rounded-lg bg-slate-100"
+                  >
+                    <img
+                      src={href}
+                      alt={m.content || 'image'}
+                      className="h-full w-full object-cover transition hover:scale-105"
+                    />
+                  </a>
+                );
+              })}
             </div>
           ))}
 
@@ -92,25 +122,54 @@ export default function TaskMediaPanel({
             <EmptyState label="No documents shared yet" />
           ) : (
             <div className="space-y-2">
-              {docs.map((m) => (
-                <a
-                  key={m.id}
-                  href={m.attachment_url!}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-3 rounded-lg border p-3 hover:bg-slate-50"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-                    <FileText size={16} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">{m.content}</p>
-                    <p className="text-xs text-slate-400">
-                      {new Date(m.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </a>
-              ))}
+              {docs.map((m) => {
+                const key = m.attachment_url!;
+                const href = signedUrls[key];
+                const pending = !(key in signedUrls);
+
+                const inner = (
+                  <>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                      <FileText size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-800">
+                        {m.content}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {pending
+                          ? 'Loading…'
+                          : href
+                          ? new Date(m.created_at).toLocaleDateString()
+                          : 'File no longer available'}
+                      </p>
+                    </div>
+                  </>
+                );
+
+                if (!href) {
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-3 rounded-lg border p-3 opacity-60"
+                    >
+                      {inner}
+                    </div>
+                  );
+                }
+
+                return (
+                  <a
+                    key={m.id}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 rounded-lg border p-3 hover:bg-slate-50"
+                  >
+                    {inner}
+                  </a>
+                );
+              })}
             </div>
           ))}
 

@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   X, Send, Paperclip, CornerUpLeft, Check, CheckCheck, FileText, Image as ImageIcon,
 } from 'lucide-react';
 import { avatarColor } from '@/lib/avatar-color';
+import { useSignedUrls } from '@/lib/use-signed-urls';
 import TaskMediaPanel from './task-media-panel';
 import TaskParticipants from './task-participants';
 import type { Task, Message } from '@/lib/types';
@@ -18,6 +19,31 @@ type Member = {
 };
 
 type MessageWithReads = Message & { reads?: { user_id: string }[] };
+
+/** Local-date key, so messages near midnight group under the correct day. */
+const dayKey = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+};
+
+const dayLabel = (iso: string) => {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (dayKey(iso) === dayKey(today.toISOString())) return 'Today';
+  if (dayKey(iso) === dayKey(yesterday.toISOString())) return 'Yesterday';
+
+  const daysAgo = (today.getTime() - d.getTime()) / 86400000;
+  if (daysAgo < 7) return d.toLocaleDateString(undefined, { weekday: 'long' });
+
+  return d.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric',
+  });
+};
 
 export default function TaskDrawer({
   task,
@@ -44,6 +70,8 @@ export default function TaskDrawer({
   const [showMedia, setShowMedia] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const signedUrls = useSignedUrls(supabase, messages);
 
   const profileById = (id: string) => members.find((m) => m.user_id === id)?.profiles;
   const recipientCount = members.length - 1; // everyone except the sender
@@ -169,14 +197,15 @@ export default function TaskDrawer({
       return;
     }
 
-    const { data: urlData } = supabase.storage.from('task-attachments').getPublicUrl(filePath);
     const isImage = file.type.startsWith('image/');
 
+    // Store the object PATH, not an absolute URL. URLs are minted at render
+    // time via createSignedUrl, so attachments survive host/protocol changes.
     await supabase.from('messages').insert({
       task_id: task.id,
       sender_id: currentUserId,
       content: file.name,
-      attachment_url: urlData.publicUrl,
+      attachment_url: filePath,
       attachment_type: isImage ? 'image' : 'file',
       reply_to_id: replyTo?.id || null,
     });
@@ -195,6 +224,62 @@ export default function TaskDrawer({
     if (readCount >= recipientCount) return <CheckCheck size={13} className="text-blue-500" />;
     if (readCount > 0) return <CheckCheck size={13} className="text-slate-400" />;
     return <Check size={13} className="text-slate-400" />;
+  };
+
+  const renderAttachment = (msg: MessageWithReads) => {
+    if (!msg.attachment_url) return null;
+
+    const key = msg.attachment_url;
+    const href = signedUrls[key];
+    const pending = !(key in signedUrls);
+
+    if (msg.attachment_type === 'image') {
+      if (pending) {
+        return <div className="mb-1 h-40 w-40 animate-pulse rounded-md bg-black/10" />;
+      }
+      if (!href) {
+        return (
+          <div className="mb-1 rounded-md bg-black/5 px-2 py-3 text-center text-[11px] text-slate-500">
+            Image no longer available
+          </div>
+        );
+      }
+      return (
+        <a href={href} target="_blank" rel="noreferrer">
+          <img
+            src={href}
+            alt={msg.content || 'attachment'}
+            className="mb-1 max-h-64 rounded-md object-cover"
+          />
+        </a>
+      );
+    }
+
+    if (msg.attachment_type === 'file') {
+      if (!href) {
+        return (
+          <div className="mb-1 flex items-center gap-2 rounded bg-black/5 px-2 py-1.5 text-xs text-slate-500 opacity-70">
+            <FileText size={14} />
+            <span className="truncate">{msg.content}</span>
+            <span className="ml-auto shrink-0 text-[10px]">
+              {pending ? 'Loading…' : 'unavailable'}
+            </span>
+          </div>
+        );
+      }
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="mb-1 flex items-center gap-2 rounded bg-black/5 px-2 py-1.5 text-xs text-slate-700 hover:bg-black/10"
+        >
+          <FileText size={14} /> {msg.content}
+        </a>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -257,7 +342,7 @@ export default function TaskDrawer({
           ) : messages.length === 0 ? (
             <p className="text-center text-sm text-slate-400">No messages yet. Say hello 👋</p>
           ) : (
-            messages.map((msg) => {
+            messages.map((msg, i) => {
               const isMine = msg.sender_id === currentUserId;
               const sender = msg.sender || profileById(msg.sender_id);
               const repliedMsg = msg.reply_to_id
@@ -265,74 +350,70 @@ export default function TaskDrawer({
                 : null;
               const senderLabel = sender?.full_name || sender?.email || 'Unknown';
 
+              const showDayDivider =
+                i === 0 || dayKey(msg.created_at) !== dayKey(messages[i - 1].created_at);
+
               return (
-                <div key={msg.id} className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                  {!isMine && (
-                    <div
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white ${avatarColor(senderLabel)}`}
-                    >
-                      {senderLabel[0].toUpperCase()}
+                <Fragment key={msg.id}>
+                  {showDayDivider && (
+                    <div className="flex justify-center py-1">
+                      <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur">
+                        {dayLabel(msg.created_at)}
+                      </span>
                     </div>
                   )}
-                  <div
-                    className={`max-w-[72%] rounded-lg px-3 py-2 shadow-sm ${
-                      isMine ? 'bg-[#d9fdd3]' : 'bg-white'
-                    }`}
-                  >
-                    {!isMine && (
-                      <p className="mb-0.5 text-xs font-semibold text-emerald-600">{senderLabel}</p>
-                    )}
 
-                    {repliedMsg && (
-                      <div className="mb-1.5 rounded border-l-2 border-emerald-500 bg-black/5 px-2 py-1">
-                        <p className="text-[11px] font-medium text-emerald-700">
-                          {repliedMsg.sender_id === currentUserId
-                            ? 'You'
-                            : repliedMsg.sender?.full_name || 'Unknown'}
-                        </p>
-                        <p className="truncate text-[11px] text-slate-600">
-                          {repliedMsg.content || 'Attachment'}
-                        </p>
+                  <div className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                    {!isMine && (
+                      <div
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white ${avatarColor(senderLabel)}`}
+                      >
+                        {senderLabel[0].toUpperCase()}
                       </div>
                     )}
+                    <div
+                      className={`max-w-[72%] rounded-lg px-3 py-2 shadow-sm ${
+                        isMine ? 'bg-[#d9fdd3]' : 'bg-white'
+                      }`}
+                    >
+                      {!isMine && (
+                        <p className="mb-0.5 text-xs font-semibold text-emerald-600">{senderLabel}</p>
+                      )}
 
-                    {msg.attachment_url && msg.attachment_type === 'image' && (
-                      <a href={msg.attachment_url} target="_blank" rel="noreferrer">
-                        <img
-                          src={msg.attachment_url}
-                          alt={msg.content || 'attachment'}
-                          className="mb-1 max-h-64 rounded-md object-cover"
-                        />
-                      </a>
-                    )}
-                    {msg.attachment_url && msg.attachment_type === 'file' && (
-                      <a
-                        href={msg.attachment_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mb-1 flex items-center gap-2 rounded bg-black/5 px-2 py-1.5 text-xs text-slate-700 hover:bg-black/10"
-                      >
-                        <FileText size={14} /> {msg.content}
-                      </a>
-                    )}
-                    {!msg.attachment_url && (
-                      <p className="whitespace-pre-wrap break-words text-sm text-slate-800">
-                        {msg.content}
-                      </p>
-                    )}
+                      {repliedMsg && (
+                        <div className="mb-1.5 rounded border-l-2 border-emerald-500 bg-black/5 px-2 py-1">
+                          <p className="text-[11px] font-medium text-emerald-700">
+                            {repliedMsg.sender_id === currentUserId
+                              ? 'You'
+                              : repliedMsg.sender?.full_name || 'Unknown'}
+                          </p>
+                          <p className="truncate text-[11px] text-slate-600">
+                            {repliedMsg.content || 'Attachment'}
+                          </p>
+                        </div>
+                      )}
 
-                    <div className="mt-1 flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => setReplyTo(msg)}
-                        className="mr-auto text-[10px] text-slate-400 hover:text-slate-700"
-                      >
-                        <CornerUpLeft size={11} className="inline" /> reply
-                      </button>
-                      <span className="text-[10px] text-slate-400">{formatTime(msg.created_at)}</span>
-                      {isMine && renderTicks(msg)}
+                      {renderAttachment(msg)}
+
+                      {!msg.attachment_url && (
+                        <p className="whitespace-pre-wrap break-words text-sm text-slate-800">
+                          {msg.content}
+                        </p>
+                      )}
+
+                      <div className="mt-1 flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setReplyTo(msg)}
+                          className="mr-auto text-[10px] text-slate-400 hover:text-slate-700"
+                        >
+                          <CornerUpLeft size={11} className="inline" /> reply
+                        </button>
+                        <span className="text-[10px] text-slate-400">{formatTime(msg.created_at)}</span>
+                        {isMine && renderTicks(msg)}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Fragment>
               );
             })
           )}
