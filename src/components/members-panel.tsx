@@ -103,13 +103,13 @@ export default function MembersPanel({
   };
 
   return (
-    <div className="rounded-xl border bg-white p-5">
+    <div className="rounded-[12px] border border-line bg-surface p-5">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-semibold text-slate-900">Members</h2>
+        <h2 className="font-display text-lg font-bold text-ink">Members</h2>
         {isAdmin && (
           <button
             onClick={() => setOpen(true)}
-            className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-ink-2 transition-colors hover:border-signal hover:text-ink"
           >
             <UserPlus size={14} /> Add member
           </button>
@@ -120,20 +120,24 @@ export default function MembersPanel({
         {members.map((m) => (
           <div
             key={m.id}
-            className="flex items-center gap-2 rounded-full border bg-slate-50 py-1 pl-1 pr-3 text-sm"
+            className="flex items-center gap-2 rounded-full border border-line bg-ground py-1 pl-1 pr-3 text-sm"
           >
-            <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs text-white ${avatarColor(m.profiles.full_name || m.profiles.email || '?')}`}>
+            <div
+              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs text-white ${avatarColor(
+                m.profiles.full_name || m.profiles.email || '?'
+              )}`}
+            >
               {(m.profiles.full_name || m.profiles.email || '?')[0].toUpperCase()}
             </div>
-            <span className="text-slate-700">{m.profiles.full_name || m.profiles.email}</span>
+            <span className="text-ink">{m.profiles.full_name || m.profiles.email}</span>
             {m.role === 'admin' ? (
-              <Shield size={12} className="text-amber-500" />
+              <Shield size={12} className="text-signal-ink" />
             ) : (
-              <UserIcon size={12} className="text-slate-400" />
+              <UserIcon size={12} className="text-ink-4" />
             )}
             {isAdmin && m.role !== 'admin' && (
-              <button onClick={() => handleRemove(m.id)}>
-                <X size={12} className="text-slate-400 hover:text-red-500" />
+              <button onClick={() => handleRemove(m.id)} aria-label="Remove member">
+                <X size={12} className="text-ink-4 transition-colors hover:text-destructive" />
               </button>
             )}
           </div>
@@ -141,59 +145,65 @@ export default function MembersPanel({
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
+          <div className="w-full max-w-sm rounded-[12px] border border-line bg-surface p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-semibold text-slate-900">Add Member</h2>
-              <button onClick={() => { setOpen(false); setQuery(''); setResults([]); }}>
-                <X size={18} className="text-slate-400" />
+              <h2 className="font-display text-xl font-bold text-ink">Add member</h2>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setQuery('');
+                  setResults([]);
+                }}
+                aria-label="Close"
+                className="rounded p-1 text-ink-3 transition-colors hover:bg-chip hover:text-ink"
+              >
+                <X size={18} />
               </button>
             </div>
 
             <div className="relative mb-2">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-4" />
               <input
                 autoFocus
                 placeholder="Search by name or email"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full rounded-md border py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full rounded-lg border border-line bg-ground py-2 pl-9 pr-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-4 focus:border-signal focus:ring-2 focus:ring-signal/25"
               />
             </div>
 
-            {error && <p className="mb-2 text-sm text-red-500">{error}</p>}
+            {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
 
             <div className="max-h-64 space-y-1 overflow-y-auto">
-              {searching && (
-                <p className="px-1 py-2 text-xs text-slate-400">Searching...</p>
-              )}
+              {searching && <p className="px-1 py-2 text-xs text-ink-4">Searching…</p>}
               {!searching && query.trim().length >= 2 && results.length === 0 && (
-                <p className="px-1 py-2 text-xs text-slate-400">
+                <p className="px-1 py-2 text-xs text-ink-4">
                   No matching users. Ask them to sign up first.
                 </p>
               )}
               {!searching && query.trim().length < 2 && (
-                <p className="px-1 py-2 text-xs text-slate-400">
-                  Type at least 2 characters to search.
-                </p>
+                <p className="px-1 py-2 text-xs text-ink-4">Type at least 2 characters to search.</p>
               )}
               {results.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => handleSelect(p)}
                   disabled={loading}
-                  className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-indigo-50 disabled:opacity-50"
+                  className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-signal-tint/60 disabled:opacity-50"
                 >
                   <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${avatarColor(p.full_name || p.email || '?')}`}
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium text-white ${avatarColor(
+                      p.full_name || p.email || '?'
+                    )}`}
                   >
                     {(p.full_name || p.email || '?')[0].toUpperCase()}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-medium text-slate-800">
+                    <span className="block truncate font-medium text-ink">
                       {p.full_name || 'Unnamed user'}
                     </span>
-                    <span className="block truncate text-xs text-slate-400">{p.email}</span>
+                    <span className="block truncate text-xs text-ink-4">{p.email}</span>
                   </span>
                 </button>
               ))}

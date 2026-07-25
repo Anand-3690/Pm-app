@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import MembersPanel from '@/components/members-panel';
 import TaskBoard from '@/components/task-board';
 import DeleteProjectButton from '@/components/delete-project-button';
+import { PROJECT_STATUS_STAMP, projectStatusLabel } from '@/lib/ui-tokens';
 
 export default async function ProjectDetailPage({
   params,
@@ -46,35 +47,28 @@ export default async function ProjectDetailPage({
       <div>
         <Link
           href="/dashboard"
-          className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900"
+          className="mb-3 inline-flex items-center gap-1 text-sm text-ink-3 transition-colors hover:text-ink"
         >
           <ArrowLeft size={14} /> Back to projects
         </Link>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">{project.title}</h1>
-            <p className="mt-1 text-sm text-slate-500">{project.description}</p>
+
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-bold text-ink">{project.title}</h1>
+            {project.description && (
+              <p className="mt-1 text-sm text-ink-3">{project.description}</p>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                project.status === 'active'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-slate-100 text-slate-600'
-              }`}
-            >
-              {project.status.replace('_', ' ')}
+          <div className="flex shrink-0 items-center gap-2">
+            <span className={`stamp ${PROJECT_STATUS_STAMP[project.status] ?? 'bg-chip text-ink-2'}`}>
+              {projectStatusLabel(project.status)}
             </span>
             {isAdmin && <DeleteProjectButton projectId={id} projectTitle={project.title} />}
           </div>
         </div>
       </div>
 
-      <MembersPanel
-        projectId={id}
-        members={(members as any) || []}
-        isAdmin={isAdmin}
-      />
+      <MembersPanel projectId={id} members={(members as any) || []} isAdmin={isAdmin} />
 
       <TaskBoard
         projectId={id}

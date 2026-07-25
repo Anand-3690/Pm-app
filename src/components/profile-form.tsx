@@ -70,17 +70,13 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
   };
 
   return (
-    <form onSubmit={handleSave} className="space-y-5 rounded-xl border bg-white p-6">
+    <form onSubmit={handleSave} className="space-y-5 rounded-[12px] border border-line bg-surface p-6">
       <div className="flex items-center gap-4">
         <div className="relative">
           {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt="Avatar"
-              className="h-16 w-16 rounded-full object-cover"
-            />
+            <img src={avatarUrl} alt="Avatar" className="h-16 w-16 rounded-full object-cover" />
           ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-xl text-white">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ink font-display text-xl font-bold text-white">
               {initials}
             </div>
           )}
@@ -88,7 +84,8 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+            aria-label="Change photo"
+            className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-line bg-signal text-white transition-colors hover:bg-signal-hover"
           >
             <Camera size={12} />
           </button>
@@ -101,31 +98,31 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
           />
         </div>
         <div>
-          <p className="text-sm font-medium text-slate-900">{profile.email}</p>
-          <p className="text-xs text-slate-400">
-            {uploading ? 'Uploading photo...' : 'Tap the camera icon to change photo'}
+          <p className="text-sm font-medium text-ink">{profile.email}</p>
+          <p className="text-xs text-ink-4">
+            {uploading ? 'Uploading photo…' : 'Tap the camera icon to change photo'}
           </p>
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Full name</label>
+        <label className="rule-label mb-1 block text-ink-2">Full name</label>
         <input
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           placeholder="Your name"
-          className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-400"
+          className="w-full rounded-lg border border-line bg-ground px-3 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-ink-4 focus:border-signal focus:ring-2 focus:ring-signal/25"
         />
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      {success && <p className="text-sm text-green-600">Profile updated.</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {success && <p className="text-sm text-signal-ink">Profile updated.</p>}
 
       <button
         disabled={saving || uploading}
-        className="w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-signal px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-signal-hover disabled:opacity-50"
       >
-        {saving ? 'Saving...' : 'Save Changes'}
+        {saving ? 'Saving…' : 'Save changes'}
       </button>
     </form>
   );
