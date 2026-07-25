@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import AdminPanel from '@/components/admin-panel';
+import AdminPanel from '../../../components/admin-panel';
 
 export default async function AdminPage() {
   const supabase = await createClient();
