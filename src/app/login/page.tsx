@@ -71,10 +71,7 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-sm text-ink-3">
-            No account?{' '}
-            <Link href="/signup" className="font-medium text-signal-ink hover:underline">
-              Sign up
-            </Link>
+            Need access? Ask your admin to create an account for you.
           </p>
         </div>
       </div>
