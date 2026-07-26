@@ -9,7 +9,7 @@ export default async function AdminPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_super_admin')
+    .select('is_super_admin, is_primary_admin')
     .eq('id', user.id)
     .single();
 
@@ -17,7 +17,7 @@ export default async function AdminPage() {
 
   const { data: allProfiles } = await supabase
     .from('profiles')
-    .select('id, full_name, email, is_super_admin, created_at')
+    .select('id, full_name, email, is_super_admin, is_primary_admin, created_at')
     .order('created_at', { ascending: false });
 
   return (
@@ -26,7 +26,11 @@ export default async function AdminPage() {
         <h1 className="font-display text-2xl font-bold text-ink">Admin</h1>
         <p className="mt-0.5 text-sm text-ink-3">Create accounts and manage super admins</p>
       </div>
-      <AdminPanel currentUserId={user.id} initialUsers={(allProfiles as any) || []} />
+      <AdminPanel
+        currentUserId={user.id}
+        isPrimaryAdmin={!!profile?.is_primary_admin}
+        initialUsers={(allProfiles as any) || []}
+      />
     </div>
   );
 }

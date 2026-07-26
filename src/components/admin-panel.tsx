@@ -13,6 +13,7 @@ type ProfileRow = {
   full_name: string | null;
   email: string | null;
   is_super_admin: boolean;
+  is_primary_admin: boolean;
   created_at: string;
 };
 
@@ -25,9 +26,11 @@ function generatePassword() {
 
 export default function AdminPanel({
   currentUserId,
+  isPrimaryAdmin,
   initialUsers,
 }: {
   currentUserId: string;
+  isPrimaryAdmin: boolean;
   initialUsers: ProfileRow[];
 }) {
   const supabase = createClient();
@@ -61,7 +64,14 @@ export default function AdminPanel({
 
     setCreated({ email, password, fullName });
     setUsers((prev) => [
-      { id: result.userId, full_name: fullName, email, is_super_admin: false, created_at: new Date().toISOString() },
+      {
+        id: result.userId,
+        full_name: fullName,
+        email,
+        is_super_admin: false,
+        is_primary_admin: false,
+        created_at: new Date().toISOString(),
+      },
       ...prev,
     ]);
     setFullName('');
@@ -164,8 +174,11 @@ export default function AdminPanel({
       {/* Manage super admins */}
       <div>
         <h2 className="font-display text-lg font-bold text-ink">All users</h2>
-        <p className="mt-0.5 text-sm text-ink-3">Grant or revoke super admin access.</p>
-
+        <p className="mt-0.5 text-sm text-ink-3">
+          {isPrimaryAdmin
+            ? 'Grant or revoke super admin access.'
+            : 'Only the primary admin can grant or revoke super admin access.'}
+        </p>
         <div className="mt-4 divide-y divide-line-soft rounded-[12px] border border-line bg-surface">
           {users.map((u) => (
             <div key={u.id} className="flex items-center justify-between gap-3 px-4 py-3">
@@ -182,12 +195,17 @@ export default function AdminPanel({
               </div>
 
               <div className="flex shrink-0 items-center gap-2.5">
-                {u.is_super_admin && (
+                {u.is_primary_admin && (
+                  <span className="stamp flex items-center gap-1 bg-signal text-white">
+                    <Shield size={11} /> Primary admin
+                  </span>
+                )}
+                {u.is_super_admin && !u.is_primary_admin && (
                   <span className="stamp flex items-center gap-1 bg-signal text-white">
                     <Shield size={11} /> Super admin
                   </span>
                 )}
-                {u.id !== currentUserId && (
+                {isPrimaryAdmin && u.id !== currentUserId && !u.is_primary_admin && (
                   <button
                     onClick={() => toggleSuperAdmin(u.id, !u.is_super_admin)}
                     disabled={togglingId === u.id}
