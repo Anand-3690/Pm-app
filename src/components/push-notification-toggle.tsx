@@ -31,15 +31,22 @@ export default function PushNotificationToggle({ userId }: { userId: string }) {
       } else {
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
-          setError('Notifications were blocked. Enable them in your browser settings to turn this on.');
+          setError(`Permission result: ${permission}. Enable notifications in Settings and try again.`);
           setLoading(false);
           return;
         }
+
+        if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+          setError('VAPID public key is missing from the build.');
+          setLoading(false);
+          return;
+        }
+
         await subscribeToPush(userId, supabase);
         setSubscribed(true);
       }
     } catch (err: any) {
-      setError(err.message || 'Something went wrong.');
+      setError(`${err.name || 'Error'}: ${err.message || JSON.stringify(err)}`);
     }
 
     setLoading(false);
