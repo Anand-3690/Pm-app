@@ -29,7 +29,6 @@ export default function ChangePasswordPage() {
     }
 
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
 
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
@@ -38,18 +37,14 @@ export default function ChangePasswordPage() {
       return;
     }
 
-    if (user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ must_change_password: false })
-        .eq('id', user.id);
-
-      if (profileError) {
-        console.error('Failed to clear must_change_password:', profileError);
-        setError('Password was updated, but something went wrong finishing setup: ' + profileError.message);
-        setLoading(false);
-        return;
-      }
+    const res = await fetch('/api/complete-password-change', { method: 'POST' });
+    if (!res.ok) {
+      const { error: apiError } = await res.json();
+      setError(
+        `Password was updated, but something went wrong finishing setup: ${apiError || 'unknown error'}`
+      );
+      setLoading(false);
+      return;
     }
 
     setLoading(false);
