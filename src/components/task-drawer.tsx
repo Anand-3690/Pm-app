@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { useLayoutEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   X, Send, Paperclip, CornerUpLeft, Check, CheckCheck, FileText, Image as ImageIcon,
@@ -161,7 +162,7 @@ export default function TaskDrawer({
   const didInitialScroll = useRef(false);
 
   // Instant jump to bottom on first load — no visible scroll
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (loading || didInitialScroll.current) return;
     bottomRef.current?.scrollIntoView({ behavior: 'auto' });
     didInitialScroll.current = true;
