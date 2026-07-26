@@ -9,8 +9,8 @@ services:
       - "127.0.0.1:3001:3000"
     pull_policy: always
   push-worker:
-    build: ./worker
-    container_name: ghcr.io/anand-3690/pm-app-push-worker:latest
+    image: ghcr.io/anand-3690/pm-app-push-worker:latest
+    container_name: pm-app-push-worker
     restart: unless-stopped
     env_file:
       - .env.production
