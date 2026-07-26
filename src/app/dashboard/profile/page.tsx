@@ -29,6 +29,7 @@ export default async function ProfilePage() {
         <p className="text-sm text-slate-500">Update your name and photo</p>
       </div>
       <ProfileForm profile={profile as any} />
+      <PushNotificationToggle userId={user.id} />
     </div>
   );
 }
