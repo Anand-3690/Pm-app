@@ -39,7 +39,17 @@ export default function ChangePasswordPage() {
     }
 
     if (user) {
-      await supabase.from('profiles').update({ must_change_password: false }).eq('id', user.id);
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ must_change_password: false })
+        .eq('id', user.id);
+
+      if (profileError) {
+        console.error('Failed to clear must_change_password:', profileError);
+        setError('Password was updated, but something went wrong finishing setup: ' + profileError.message);
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(false);
