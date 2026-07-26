@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 const fieldClass =
   'w-full rounded-lg border border-line bg-ground px-3 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-ink-4 focus:border-signal focus:ring-2 focus:ring-signal/25';
 
 export default function ChangePasswordPage() {
-  const router = useRouter();
+  
   const supabase = createClient();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -57,9 +56,7 @@ export default function ChangePasswordPage() {
       return;
     }
 
-    setLoading(false);
-    router.push('/dashboard');
-    router.refresh();
+    window.location.href = '/dashboard';
   };
 
   return (
