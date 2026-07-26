@@ -1,7 +1,6 @@
 'use client';
 
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { useLayoutEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   X, Send, Paperclip, CornerUpLeft, Check, CheckCheck, FileText, Image as ImageIcon,
@@ -70,7 +69,6 @@ export default function TaskDrawer({
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showMedia, setShowMedia] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
   const signedUrls = useSignedUrls(supabase, messages);
 
@@ -158,24 +156,6 @@ export default function TaskDrawer({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task.id]);
-
-  const didInitialScroll = useRef(false);
-
-  // Instant jump to bottom on first load — no visible scroll
-  useLayoutEffect(() => {
-    if (loading || didInitialScroll.current) return;
-    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
-    didInitialScroll.current = true;
-  }, [loading]);
-
-  // Smooth scroll only for new messages after the first load
-  useEffect(() => {
-    if (!didInitialScroll.current) return;
-    const el = bottomRef.current?.parentElement;
-    if (!el) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
-    if (nearBottom) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -362,14 +342,17 @@ export default function TaskDrawer({
           </div>
         </div>
 
-        {/* Chat messages */}
-        <div className="flex-1 space-y-2.5 overflow-y-auto bg-[#f4f1ec] px-3 py-4">
+        {/* Chat messages — flex-col-reverse anchors to the bottom with no scroll jump.
+            Messages render newest-first in the DOM; the reverse makes them appear
+            oldest-top, newest-bottom, and the browser opens already scrolled to the
+            latest message. */}
+        <div className="flex flex-1 flex-col-reverse space-y-2.5 space-y-reverse overflow-y-auto bg-[#f4f1ec] px-3 py-4">
           {loading ? (
             <p className="text-center text-sm text-ink-3">Loading messages…</p>
           ) : messages.length === 0 ? (
             <p className="text-center text-sm text-ink-3">No messages yet. Say hello.</p>
           ) : (
-            messages.map((msg, i) => {
+            [...messages].reverse().map((msg, i, arr) => {
               const isMine = msg.sender_id === currentUserId;
               const sender = msg.sender || profileById(msg.sender_id);
               const repliedMsg = msg.reply_to_id
@@ -377,17 +360,15 @@ export default function TaskDrawer({
                 : null;
               const senderLabel = sender?.full_name || sender?.email || 'Unknown';
 
+              // In reversed order, arr[i + 1] is the chronologically-earlier message.
+              // A day divider caps the top of each day's group, so it shows when the
+              // older neighbour is a different day (or this is the oldest message).
+              const olderMsg = arr[i + 1];
               const showDayDivider =
-                i === 0 || dayKey(msg.created_at) !== dayKey(messages[i - 1].created_at);
+                !olderMsg || dayKey(msg.created_at) !== dayKey(olderMsg.created_at);
 
               return (
                 <Fragment key={msg.id}>
-                  {showDayDivider && (
-                    <div className="flex justify-center py-2">
-                      <span className="stamp bg-chip text-ink-2">{dayLabel(msg.created_at)}</span>
-                    </div>
-                  )}
-
                   <div className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
                     {!isMine && (
                       <div
@@ -439,11 +420,18 @@ export default function TaskDrawer({
                       </div>
                     </div>
                   </div>
+
+                  {/* Divider renders AFTER the bubble in source; in a reversed column
+                      that places it visually ABOVE the day's first message. */}
+                  {showDayDivider && (
+                    <div className="flex justify-center py-2">
+                      <span className="stamp bg-chip text-ink-2">{dayLabel(msg.created_at)}</span>
+                    </div>
+                  )}
                 </Fragment>
               );
             })
           )}
-          <div ref={bottomRef} />
         </div>
 
         {/* Reply preview */}
