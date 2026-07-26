@@ -158,8 +158,22 @@ export default function TaskDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task.id]);
 
+  const didInitialScroll = useRef(false);
+
+  // Instant jump to bottom on first load — no visible scroll
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (loading || didInitialScroll.current) return;
+    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+    didInitialScroll.current = true;
+  }, [loading]);
+
+  // Smooth scroll only for new messages after the first load
+  useEffect(() => {
+    if (!didInitialScroll.current) return;
+    const el = bottomRef.current?.parentElement;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+    if (nearBottom) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
   const handleSend = async (e: React.FormEvent) => {
