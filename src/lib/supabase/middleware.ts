@@ -25,7 +25,19 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/signup')) {
+  const isPublicAsset =
+    request.nextUrl.pathname === '/sw.js' ||
+    request.nextUrl.pathname === '/manifest.json' ||
+    request.nextUrl.pathname === '/offline' ||
+    request.nextUrl.pathname.startsWith('/icons/') ||
+    request.nextUrl.pathname === '/apple-touch-icon.png';
+
+  if (
+    !user &&
+    !isPublicAsset &&
+    !request.nextUrl.pathname.startsWith('/login') &&
+    !request.nextUrl.pathname.startsWith('/signup')
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
