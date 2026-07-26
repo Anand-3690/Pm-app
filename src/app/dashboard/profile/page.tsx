@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ProfileForm from '@/components/profile-form';
+import PushNotificationToggle from '@/components/push-notification-toggle';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 

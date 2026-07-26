@@ -1,0 +1,9 @@
+{
+  "name": "pm-app-push-worker",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.7",
+    "web-push": "^3.6.7"
+  }
+}

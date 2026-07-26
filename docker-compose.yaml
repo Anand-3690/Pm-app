@@ -8,11 +8,9 @@ services:
     ports:
       - "127.0.0.1:3001:3000"
     pull_policy: always
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: cloudflared
+  push-worker:
+    build: ./worker
+    container_name: pm-app-push-worker
     restart: unless-stopped
-    command: tunnel --no-autoupdate run
     env_file:
-      - .env.tunnel
-    network_mode: host
+      - .env.production
