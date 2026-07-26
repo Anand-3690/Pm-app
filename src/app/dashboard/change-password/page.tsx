@@ -37,12 +37,22 @@ export default function ChangePasswordPage() {
       return;
     }
 
-    const res = await fetch('/api/complete-password-change', { method: 'POST' });
-    if (!res.ok) {
-      const { error: apiError } = await res.json();
-      setError(
-        `Password was updated, but something went wrong finishing setup: ${apiError || 'unknown error'}`
-      );
+    try {
+      const res = await fetch('/api/complete-password-change', { method: 'POST' });
+      if (!res.ok) {
+        const text = await res.text();
+        let apiError = text;
+        try {
+          apiError = JSON.parse(text).error || text;
+        } catch {
+          // response wasn't JSON — keep the raw text so it's still visible
+        }
+        setError(`Password was updated, but something went wrong finishing setup: ${apiError}`);
+        setLoading(false);
+        return;
+      }
+    } catch (err: any) {
+      setError(`Password was updated, but the follow-up request failed: ${err.message}`);
       setLoading(false);
       return;
     }
