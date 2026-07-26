@@ -10,7 +10,7 @@ services:
     pull_policy: always
   push-worker:
     build: ./worker
-    container_name: pm-app-push-worker
+    container_name: ghcr.io/anand-3690/pm-app-push-worker:latest
     restart: unless-stopped
     env_file:
       - .env.production
