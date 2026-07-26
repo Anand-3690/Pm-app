@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     email: email.trim(),
     password,
     email_confirm: true,
-    user_metadata: { full_name: fullName.trim() },
+    user_metadata: { full_name: fullName.trim(), must_change_password: true },
   });
 
   if (error || !created.user) {
@@ -41,8 +41,6 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-
-  await admin.from('profiles').update({ must_change_password: true }).eq('id', created.user.id);
 
   return NextResponse.json({ success: true, userId: created.user.id });
 }
