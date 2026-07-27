@@ -403,7 +403,7 @@ export default function TaskDrawer({
                       {renderAttachment(msg, isMine)}
 
                       {!msg.attachment_url && (
-                        <p className="whitespace-pre-wrap break-words text-sm text-ink">
+                        <p className={`whitespace-pre-wrap break-words text-sm ${isMine ? 'text-white' : 'text-ink'}`}>
                           {msg.content}
                         </p>
                       )}
@@ -415,7 +415,7 @@ export default function TaskDrawer({
                         >
                           <CornerUpLeft size={11} className="inline" /> reply
                         </button>
-                        <span className="text-[10px] text-ink-4">{formatTime(msg.created_at)}</span>
+                        <span className={`text-[10px] ${isMine ? 'text-[#9fb4cb]' : 'text-ink-4'}`}>{formatTime(msg.created_at)}</span>
                         {isMine && renderTicks(msg)}
                       </div>
                     </div>

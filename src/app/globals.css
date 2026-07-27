@@ -5,24 +5,28 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-ground: #faf7f2;
-  --color-surface: #ffffff;
-  --color-line: #eae4da;
-  --color-line-soft: #efebe4;
-  --color-chip: #f1ede6;
+  /* Surfaces — hpys warm creams */
+  --color-ground: #faf6f0;      /* page background */
+  --color-surface: #ffffff;     /* cards stay white for contrast on cream */
+  --color-line: #eedcc5;        /* hpys warm hairline (kept, per your call) */
+  --color-line-soft: #f2e7d6;
+  --color-chip: #fdf6ec;        /* input fill / chip ground */
 
-  --color-ink: #2e2a26;
-  --color-ink-2: #6e675c;
-  --color-ink-3: #8a8378;
-  --color-ink-4: #a9a297;
+  /* Text — hpys navy family */
+  --color-ink: #1e466b;         /* headings + primary text (hpys navy) */
+  --color-ink-2: #3f5f7f;       /* secondary text */
+  --color-ink-3: #6b7f92;       /* muted / meta */
+  --color-ink-4: #9aa8b5;       /* faint / placeholder */
 
+  /* Accent — UNCHANGED: your signal orange + solid button */
   --color-signal: #ff6b2c;
   --color-signal-hover: #f05e1f;
   --color-signal-tint: #ffede2;
   --color-signal-ink: #b8480f;
 
-  --color-bubble: #ffbe95;
-  --color-bubble-line: #ff9d68;
+  /* Chat bubble — your existing warm orange tint, unchanged */
+  --color-bubble: #1e466b;
+  --color-bubble-line: #1e466b;
 
   --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
@@ -69,59 +73,60 @@
 :root {
   --radius: 0.625rem;
 
-  --background: #faf7f2;
-  --foreground: #2e2a26;
+  --background: #faf6f0;
+  --foreground: #1e466b;
   --card: #ffffff;
-  --card-foreground: #2e2a26;
+  --card-foreground: #1e466b;
   --popover: #ffffff;
-  --popover-foreground: #2e2a26;
+  --popover-foreground: #1e466b;
 
+  /* Primary stays orange — your buttons and active accents */
   --primary: #ff6b2c;
   --primary-foreground: #ffffff;
-  --secondary: #f1ede6;
-  --secondary-foreground: #2e2a26;
+  --secondary: #fdf6ec;
+  --secondary-foreground: #1e466b;
 
-  --muted: #f1ede6;
-  --muted-foreground: #8a8378;
+  --muted: #fdf6ec;
+  --muted-foreground: #6b7f92;
   --accent: #ffede2;
   --accent-foreground: #b8480f;
 
   --destructive: #c8452b;
-  --border: #eae4da;
-  --input: #eae4da;
+  --border: #eedcc5;
+  --input: #eedcc5;
   --ring: #ff6b2c;
 
   --chart-1: #ff6b2c;
-  --chart-2: #b8480f;
-  --chart-3: #8a8378;
-  --chart-4: #6e675c;
-  --chart-5: #2e2a26;
+  --chart-2: #1e466b;
+  --chart-3: #6b7f92;
+  --chart-4: #b8480f;
+  --chart-5: #3f5f7f;
 
   --sidebar: #ffffff;
-  --sidebar-foreground: #2e2a26;
+  --sidebar-foreground: #1e466b;
   --sidebar-primary: #ff6b2c;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #ffede2;
   --sidebar-accent-foreground: #b8480f;
-  --sidebar-border: #eae4da;
+  --sidebar-border: #eedcc5;
   --sidebar-ring: #ff6b2c;
 }
 
 .dark {
-  --background: #1c1a18;
-  --foreground: #f2efe9;
-  --card: #262320;
-  --card-foreground: #f2efe9;
-  --popover: #262320;
-  --popover-foreground: #f2efe9;
+  --background: #14243a;
+  --foreground: #eaf0f6;
+  --card: #1b2f47;
+  --card-foreground: #eaf0f6;
+  --popover: #1b2f47;
+  --popover-foreground: #eaf0f6;
 
   --primary: #ff6b2c;
-  --primary-foreground: #1c1a18;
-  --secondary: #332f2b;
-  --secondary-foreground: #f2efe9;
+  --primary-foreground: #14243a;
+  --secondary: #24384f;
+  --secondary-foreground: #eaf0f6;
 
-  --muted: #332f2b;
-  --muted-foreground: #a9a297;
+  --muted: #24384f;
+  --muted-foreground: #9aa8b5;
   --accent: #3d2a1e;
   --accent-foreground: #ffb489;
 
@@ -130,10 +135,10 @@
   --input: #ffffff26;
   --ring: #ff6b2c;
 
-  --sidebar: #262320;
-  --sidebar-foreground: #f2efe9;
+  --sidebar: #1b2f47;
+  --sidebar-foreground: #eaf0f6;
   --sidebar-primary: #ff6b2c;
-  --sidebar-primary-foreground: #1c1a18;
+  --sidebar-primary-foreground: #14243a;
   --sidebar-accent: #3d2a1e;
   --sidebar-accent-foreground: #ffb489;
   --sidebar-border: #ffffff1a;

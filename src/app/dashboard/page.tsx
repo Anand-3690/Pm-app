@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import NewProjectDialog from '@/components/new-project-dialog';
@@ -6,12 +7,13 @@ import { PROJECT_STATUS_STAMP, projectStatusLabel } from '@/lib/ui-tokens';
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
   // Get all project_members rows for this user, joined to the project itself
   const { data: memberships } = await supabase
     .from('project_members')
     .select('role, projects(id, title, description, status, created_at)')
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
     .order('joined_at', { ascending: false });
 
   const { data: unreadRows } = await supabase.rpc('unread_counts_by_project');
@@ -30,7 +32,7 @@ export default async function DashboardPage() {
           <h1 className="font-display text-2xl font-bold text-ink">Your projects</h1>
           <p className="mt-0.5 text-sm text-ink-3">Everything you own or belong to</p>
         </div>
-        <NewProjectDialog userId={user!.id} />
+        <NewProjectDialog userId={user.id} />
       </div>
 
       {projects.length === 0 ? (
