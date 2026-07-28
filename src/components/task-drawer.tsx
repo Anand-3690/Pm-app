@@ -347,7 +347,7 @@ export default function TaskDrawer({
             Messages render newest-first in the DOM; the reverse makes them appear
             oldest-top, newest-bottom, and the browser opens already scrolled to the
             latest message. */}
-        <div className="flex flex-1 flex-col-reverse space-y-2.5 space-y-reverse overflow-y-auto bg-[#f4f1ec] px-3 py-4">
+        <div className="flex flex-1 flex-col-reverse space-y-2.5 space-y-reverse overflow-y-auto overflow-x-hidden bg-[#f4f1ec] px-3 py-4">
           {loading ? (
             <p className="text-center text-sm text-ink-3">Loading messages…</p>
           ) : messages.length === 0 ? (
@@ -463,6 +463,9 @@ export default function TaskDrawer({
 /* ------------------------------------------------------------------ */
 /* Single message row. Extracted so it can own a swipe hook (hooks    */
 /* can't be called inside .map()). Swipe right → reply, WhatsApp-style.*/
+/*                                                                     */
+/* Only the BUBBLE translates; the row clips its own overflow so the   */
+/* swipe never widens the page or moves the avatar.                    */
 /* ------------------------------------------------------------------ */
 function MessageRow({
   msg,
@@ -486,10 +489,15 @@ function MessageRow({
   const { handlers, offset, progress } = useSwipeToReply(onReply);
 
   return (
-    <div className="relative">
-      {/* Reply icon revealed under the bubble as you swipe right */}
+    <div
+      {...handlers}
+      className={`relative flex items-end gap-2 overflow-hidden ${
+        isMine ? 'justify-end' : 'justify-start'
+      }`}
+    >
+      {/* Reply icon revealed as the bubble slides right */}
       <div
-        className="pointer-events-none absolute inset-y-0 left-2 flex items-center"
+        className="pointer-events-none absolute inset-y-0 left-1 flex items-center"
         style={{ opacity: progress }}
         aria-hidden="true"
       >
@@ -501,66 +509,65 @@ function MessageRow({
         </div>
       </div>
 
+      {!isMine && (
+        <div
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white ${avatarColor(senderLabel)}`}
+          style={{
+            transform: `translateX(${offset}px)`,
+            transition: offset === 0 ? 'transform 0.18s ease-out' : 'none',
+          }}
+        >
+          {senderLabel[0].toUpperCase()}
+        </div>
+      )}
+
       <div
-        {...handlers}
         style={{
           transform: `translateX(${offset}px)`,
           transition: offset === 0 ? 'transform 0.18s ease-out' : 'none',
         }}
-        className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}
+        className={`max-w-[76%] rounded-[10px] border px-3 py-2 ${
+          isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
+        }`}
       >
         {!isMine && (
-          <div
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white ${avatarColor(senderLabel)}`}
-          >
-            {senderLabel[0].toUpperCase()}
+          <p className="rule-label mb-0.5 text-signal-ink">{senderLabel}</p>
+        )}
+
+        {repliedMsg && (
+          <div className="mb-1.5 rounded-md border-l-[3px] border-l-signal bg-ink/5 px-2 py-1">
+            <p className="text-[11px] font-medium text-signal-ink">
+              {repliedMsg.sender_id === currentUserId
+                ? 'You'
+                : repliedMsg.sender?.full_name || 'Unknown'}
+            </p>
+            <p className="truncate text-[11px] text-ink-2">
+              {repliedMsg.content || 'Attachment'}
+            </p>
           </div>
         )}
 
-        <div
-          className={`max-w-[76%] rounded-[10px] border px-3 py-2 ${
-            isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
-          }`}
-        >
-          {!isMine && (
-            <p className="rule-label mb-0.5 text-signal-ink">{senderLabel}</p>
-          )}
+        {renderAttachment(msg, isMine)}
 
-          {repliedMsg && (
-            <div className="mb-1.5 rounded-md border-l-[3px] border-l-signal bg-ink/5 px-2 py-1">
-              <p className="text-[11px] font-medium text-signal-ink">
-                {repliedMsg.sender_id === currentUserId
-                  ? 'You'
-                  : repliedMsg.sender?.full_name || 'Unknown'}
-              </p>
-              <p className="truncate text-[11px] text-ink-2">
-                {repliedMsg.content || 'Attachment'}
-              </p>
-            </div>
-          )}
+        {!msg.attachment_url && (
+          <p className={`whitespace-pre-wrap break-words text-sm ${isMine ? 'text-white' : 'text-ink'}`}>
+            {msg.content}
+          </p>
+        )}
 
-          {renderAttachment(msg, isMine)}
-
-          {!msg.attachment_url && (
-            <p className={`whitespace-pre-wrap break-words text-sm ${isMine ? 'text-white' : 'text-ink'}`}>
-              {msg.content}
-            </p>
-          )}
-
-          <div className="mt-1 flex items-center justify-end gap-1.5">
-            <button
-              onClick={onReply}
-              className={`mr-auto text-[10px] transition-colors ${
-                isMine ? 'text-[#9fb4cb] hover:text-white' : 'text-ink-4 hover:text-ink-2'
-              }`}
-            >
-              <CornerUpLeft size={11} className="inline" /> reply
-            </button>
-            <span className={`text-[10px] ${isMine ? 'text-[#9fb4cb]' : 'text-ink-4'}`}>
-              {formatTime(msg.created_at)}
-            </span>
-            {isMine && renderTicks(msg)}
-          </div>
+        <div className="mt-1 flex items-center justify-end gap-1.5">
+          <button
+            onClick={onReply}
+            className={`mr-auto text-[10px] transition-colors ${
+              isMine ? 'text-[#9fb4cb] hover:text-white' : 'text-ink-4 hover:text-ink-2'
+            }`}
+          >
+            <CornerUpLeft size={11} className="inline" /> reply
+          </button>
+          <span className={`text-[10px] ${isMine ? 'text-[#9fb4cb]' : 'text-ink-4'}`}>
+            {formatTime(msg.created_at)}
+          </span>
+          {isMine && renderTicks(msg)}
         </div>
       </div>
     </div>
