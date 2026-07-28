@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { avatarColor } from '@/lib/avatar-color';
 import { useSignedUrls } from '@/lib/use-signed-urls';
+import { useSwipeToReply } from '@/lib/use-swipe-to-reply';
 import TaskMediaPanel from './task-media-panel';
 import TaskParticipants from './task-participants';
 import type { Task, Message } from '@/lib/types';
@@ -44,6 +45,9 @@ const dayLabel = (iso: string) => {
     year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric',
   });
 };
+
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
 export default function TaskDrawer({
   task,
@@ -210,9 +214,6 @@ export default function TaskDrawer({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const formatTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-
   const renderTicks = (msg: MessageWithReads) => {
     const readCount = (msg.reads || []).length;
     if (recipientCount <= 0) return <Check size={13} className="text-ink-4" />;
@@ -369,57 +370,16 @@ export default function TaskDrawer({
 
               return (
                 <Fragment key={msg.id}>
-                  <div className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                    {!isMine && (
-                      <div
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white ${avatarColor(senderLabel)}`}
-                      >
-                        {senderLabel[0].toUpperCase()}
-                      </div>
-                    )}
-
-                    <div
-                      className={`max-w-[76%] rounded-[10px] border px-3 py-2 ${
-                        isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
-                      }`}
-                    >
-                      {!isMine && (
-                        <p className="rule-label mb-0.5 text-signal-ink">{senderLabel}</p>
-                      )}
-
-                      {repliedMsg && (
-                        <div className="mb-1.5 rounded-md border-l-[3px] border-l-signal bg-ink/5 px-2 py-1">
-                          <p className="text-[11px] font-medium text-signal-ink">
-                            {repliedMsg.sender_id === currentUserId
-                              ? 'You'
-                              : repliedMsg.sender?.full_name || 'Unknown'}
-                          </p>
-                          <p className="truncate text-[11px] text-ink-2">
-                            {repliedMsg.content || 'Attachment'}
-                          </p>
-                        </div>
-                      )}
-
-                      {renderAttachment(msg, isMine)}
-
-                      {!msg.attachment_url && (
-                        <p className={`whitespace-pre-wrap break-words text-sm ${isMine ? 'text-white' : 'text-ink'}`}>
-                          {msg.content}
-                        </p>
-                      )}
-
-                      <div className="mt-1 flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setReplyTo(msg)}
-                          className="mr-auto text-[10px] text-ink-4 transition-colors hover:text-ink-2"
-                        >
-                          <CornerUpLeft size={11} className="inline" /> reply
-                        </button>
-                        <span className={`text-[10px] ${isMine ? 'text-[#9fb4cb]' : 'text-ink-4'}`}>{formatTime(msg.created_at)}</span>
-                        {isMine && renderTicks(msg)}
-                      </div>
-                    </div>
-                  </div>
+                  <MessageRow
+                    msg={msg}
+                    isMine={isMine}
+                    senderLabel={senderLabel}
+                    repliedMsg={repliedMsg as MessageWithReads | null}
+                    currentUserId={currentUserId}
+                    onReply={() => setReplyTo(msg)}
+                    renderAttachment={renderAttachment}
+                    renderTicks={renderTicks}
+                  />
 
                   {/* Divider renders AFTER the bubble in source; in a reversed column
                       that places it visually ABOVE the day's first message. */}
@@ -495,6 +455,113 @@ export default function TaskDrawer({
         </form>
 
         {showMedia && <TaskMediaPanel messages={messages} onClose={() => setShowMedia(false)} />}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Single message row. Extracted so it can own a swipe hook (hooks    */
+/* can't be called inside .map()). Swipe right → reply, WhatsApp-style.*/
+/* ------------------------------------------------------------------ */
+function MessageRow({
+  msg,
+  isMine,
+  senderLabel,
+  repliedMsg,
+  currentUserId,
+  onReply,
+  renderAttachment,
+  renderTicks,
+}: {
+  msg: MessageWithReads;
+  isMine: boolean;
+  senderLabel: string;
+  repliedMsg: MessageWithReads | null;
+  currentUserId: string;
+  onReply: () => void;
+  renderAttachment: (msg: MessageWithReads, isMine: boolean) => React.ReactNode;
+  renderTicks: (msg: MessageWithReads) => React.ReactNode;
+}) {
+  const { handlers, offset, progress } = useSwipeToReply(onReply);
+
+  return (
+    <div className="relative">
+      {/* Reply icon revealed under the bubble as you swipe right */}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-2 flex items-center"
+        style={{ opacity: progress }}
+        aria-hidden="true"
+      >
+        <div
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-signal text-white"
+          style={{ transform: `scale(${0.7 + progress * 0.3})` }}
+        >
+          <CornerUpLeft size={15} />
+        </div>
+      </div>
+
+      <div
+        {...handlers}
+        style={{
+          transform: `translateX(${offset}px)`,
+          transition: offset === 0 ? 'transform 0.18s ease-out' : 'none',
+        }}
+        className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}
+      >
+        {!isMine && (
+          <div
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white ${avatarColor(senderLabel)}`}
+          >
+            {senderLabel[0].toUpperCase()}
+          </div>
+        )}
+
+        <div
+          className={`max-w-[76%] rounded-[10px] border px-3 py-2 ${
+            isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
+          }`}
+        >
+          {!isMine && (
+            <p className="rule-label mb-0.5 text-signal-ink">{senderLabel}</p>
+          )}
+
+          {repliedMsg && (
+            <div className="mb-1.5 rounded-md border-l-[3px] border-l-signal bg-ink/5 px-2 py-1">
+              <p className="text-[11px] font-medium text-signal-ink">
+                {repliedMsg.sender_id === currentUserId
+                  ? 'You'
+                  : repliedMsg.sender?.full_name || 'Unknown'}
+              </p>
+              <p className="truncate text-[11px] text-ink-2">
+                {repliedMsg.content || 'Attachment'}
+              </p>
+            </div>
+          )}
+
+          {renderAttachment(msg, isMine)}
+
+          {!msg.attachment_url && (
+            <p className={`whitespace-pre-wrap break-words text-sm ${isMine ? 'text-white' : 'text-ink'}`}>
+              {msg.content}
+            </p>
+          )}
+
+          <div className="mt-1 flex items-center justify-end gap-1.5">
+            <button
+              onClick={onReply}
+              className={`mr-auto text-[10px] transition-colors ${
+                isMine ? 'text-[#9fb4cb] hover:text-white' : 'text-ink-4 hover:text-ink-2'
+              }`}
+            >
+              <CornerUpLeft size={11} className="inline" /> reply
+            </button>
+            <span className={`text-[10px] ${isMine ? 'text-[#9fb4cb]' : 'text-ink-4'}`}>
+              {formatTime(msg.created_at)}
+            </span>
+            {isMine && renderTicks(msg)}
+          </div>
+        </div>
       </div>
     </div>
   );
