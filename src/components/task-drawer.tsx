@@ -347,7 +347,7 @@ export default function TaskDrawer({
             Messages render newest-first in the DOM; the reverse makes them appear
             oldest-top, newest-bottom, and the browser opens already scrolled to the
             latest message. */}
-        <div className="flex flex-1 flex-col-reverse space-y-2.5 space-y-reverse overflow-y-auto bg-[#f4f1ec] px-3 py-4">
+        <div className="flex flex-1 flex-col-reverse space-y-2.5 space-y-reverse overflow-y-auto overflow-x-hidden bg-[#f4f1ec] px-3 py-4">
           {loading ? (
             <p className="text-center text-sm text-ink-3">Loading messages…</p>
           ) : messages.length === 0 ? (
@@ -464,9 +464,9 @@ export default function TaskDrawer({
 /* Single message row. Extracted so it can own a swipe hook (hooks    */
 /* can't be called inside .map()). Swipe right → reply, WhatsApp-style.*/
 /*                                                                     */
-/* Horizontal-only clip (overflow-x-clip) so the swipe can't widen the */
-/* page, WITHOUT clipping vertical height — plain overflow-hidden was  */
-/* collapsing the bubble height on narrow screens.                     */
+/* No overflow property on the row — clipping is handled by the        */
+/* scroll container's overflow-x-hidden (Safari-safe). Row-level       */
+/* overflow clip was collapsing bubble height on iOS.                  */
 /* ------------------------------------------------------------------ */
 function MessageRow({
   msg,
@@ -492,7 +492,6 @@ function MessageRow({
   return (
     <div
       {...handlers}
-      style={{ overflowX: 'clip' }}
       className={`relative flex items-end gap-2 ${
         isMine ? 'justify-end' : 'justify-start'
       }`}
