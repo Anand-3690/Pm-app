@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { UserPlus, X, Shield, User as UserIcon, Search } from 'lucide-react';
 import { avatarColor } from '@/lib/avatar-color';
+import Avatar from './avatar';
 
 type ProfileResult = {
   id: string;
@@ -122,13 +123,11 @@ export default function MembersPanel({
             key={m.id}
             className="flex items-center gap-2 rounded-full border border-line bg-ground py-1 pl-1 pr-3 text-sm"
           >
-            <div
-              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs text-white ${avatarColor(
-                m.profiles.full_name || m.profiles.email || '?'
-              )}`}
-            >
-              {(m.profiles.full_name || m.profiles.email || '?')[0].toUpperCase()}
-            </div>
+            <Avatar
+              url={m.profiles.avatar_url}
+              name={m.profiles.full_name || m.profiles.email}
+              size={24}
+            />
             <span className="text-ink">{m.profiles.full_name || m.profiles.email}</span>
             {m.role === 'admin' ? (
               <Shield size={12} className="text-signal-ink" />

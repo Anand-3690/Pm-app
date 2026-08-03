@@ -11,6 +11,7 @@ import { useSwipeToReply } from '@/lib/use-swipe-to-reply';
 import TaskMediaPanel from './task-media-panel';
 import TaskParticipants from './task-participants';
 import type { Task, Message } from '@/lib/types';
+import Avatar from './avatar';
 
 type Member = {
   id: string;
@@ -512,13 +513,16 @@ function MessageRow({
 
       {!isMine && (
         <div
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white ${avatarColor(senderLabel)}`}
           style={{
             transform: `translateX(${offset}px)`,
             transition: offset === 0 ? 'transform 0.18s ease-out' : 'none',
           }}
         >
-          {senderLabel[0].toUpperCase()}
+          <Avatar
+            url={msg.sender?.avatar_url}
+            name={senderLabel}
+            size={28}
+          />
         </div>
       )}
 
