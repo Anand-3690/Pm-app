@@ -50,6 +50,30 @@ const dayLabel = (iso: string) => {
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
+/** Render URLs in message text as clickable links; stopPropagation so a tap
+ *  on a link doesn't trigger swipe-to-reply. */
+function linkify(text: string, isMine: boolean) {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return parts.map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+        <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className={`underline underline-offset-2 ${
+          isMine ? 'text-white' : 'text-signal-ink'
+        }`}
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  );
+}
+
 export default function TaskDrawer({
   task,
   members,
@@ -556,7 +580,7 @@ function MessageRow({
 
         {!msg.attachment_url && (
           <p className={`whitespace-pre-wrap break-words text-sm ${isMine ? 'text-white' : 'text-ink'}`}>
-            {msg.content}
+            {linkify(msg.content, isMine)}
           </p>
         )}
 
