@@ -53,6 +53,7 @@ const formatTime = (iso: string) =>
 /** Render URLs in message text as clickable links; stopPropagation so a tap
  *  on a link doesn't trigger swipe-to-reply. */
 function linkify(text: string, isMine: boolean) {
+  if (!text) return null;
   const parts = text.split(/(https?:\/\/[^\s]+)/g);
   return parts.map((part, i) =>
     /^https?:\/\//.test(part) ? (
@@ -580,7 +581,7 @@ function MessageRow({
 
         {!msg.attachment_url && (
           <p className={`whitespace-pre-wrap break-words text-sm ${isMine ? 'text-white' : 'text-ink'}`}>
-            {linkify(msg.content, isMine)}
+            {linkify(msg.content ?? '', isMine)}
           </p>
         )}
 
