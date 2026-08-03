@@ -52,4 +52,5 @@ export type Message = {
   created_at: string;
   sender?: Profile;
   reply_to?: Message;
+  avatar_url: string | null
 };
