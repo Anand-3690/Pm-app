@@ -6,6 +6,7 @@ import MembersPanel from '@/components/members-panel';
 import TaskBoard from '@/components/task-board';
 import DeleteProjectButton from '@/components/delete-project-button';
 import { PROJECT_STATUS_STAMP, projectStatusLabel } from '@/lib/ui-tokens';
+import Announcements from '@/components/announcements';
 
 export default async function ProjectDetailPage({
   params,
@@ -32,6 +33,13 @@ export default async function ProjectDetailPage({
 
   const myMembership = members?.find((m: any) => m.user_id === user.id);
   const isAdmin = myMembership?.role === 'admin';
+
+  const { data: me } = await supabase
+  .from('profiles')
+  .select('is_super_admin')
+  .eq('id', user.id)
+  .single();
+  const canPostAnnouncements = isAdmin || !!me?.is_super_admin;
 
   const { data: tasks } = await supabase
     .from('tasks')
@@ -69,6 +77,12 @@ export default async function ProjectDetailPage({
       </div>
 
       <MembersPanel projectId={id} members={(members as any) || []} isAdmin={isAdmin} />
+      
+      <Announcements
+        projectId={id}
+        currentUserId={user.id}
+        canPost={canPostAnnouncements}
+      />
 
       <TaskBoard
         projectId={id}

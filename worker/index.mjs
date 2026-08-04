@@ -131,4 +131,51 @@ supabase
   })
   .subscribe();
 
+// ─────────────────────────────────────────────────────────────
+// New announcement → notify all OTHER members of the project.
+// Same fan-out pattern as the other listeners: reuse sendToUsers().
+// Paste this block into worker/index.mjs, just before the final
+// console.log('Push worker connected and listening.').
+// ─────────────────────────────────────────────────────────────
+supabase
+  .channel('worker-announcements')
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, async (payload) => {
+    const ann = payload.new;
+
+    const { data: project } = await supabase
+      .from('projects')
+      .select('title')
+      .eq('id', ann.project_id)
+      .single();
+    if (!project) return;
+
+    const { data: author } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', ann.author_id)
+      .single();
+
+    // Every member of the project except the author.
+    const { data: members } = await supabase
+      .from('project_members')
+      .select('user_id')
+      .eq('project_id', ann.project_id);
+
+    const recipientIds = (members || [])
+      .map((m) => m.user_id)
+      .filter((id) => id !== ann.author_id);
+
+    const authorName = author?.full_name || author?.email || 'An admin';
+    const body = ann.body
+      ? `${authorName}: ${ann.body}`
+      : `${authorName} posted an attachment`;
+
+    await sendToUsers(recipientIds, {
+      title: `📢 ${project.title}`,
+      body: body.slice(0, 150),
+      url: `${APP_URL}/dashboard/projects/${ann.project_id}`,
+    });
+  })
+  .subscribe();
+
 console.log('Push worker connected and listening.');
