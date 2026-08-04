@@ -26,6 +26,26 @@ function toPath(stored: string) {
   return decodeURIComponent(raw.split('?')[0]);
 }
 
+/** Render URLs in announcement text as clickable links. */
+function linkify(text: string) {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return parts.map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noreferrer"
+        className="text-signal-ink underline underline-offset-2"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  );
+}
+
 export default function Announcements({
   projectId,
   currentUserId,
@@ -242,6 +262,7 @@ export default function Announcements({
               {items.map((a) => {
                 const href = a.attachment_url ? signed[a.attachment_url] : null;
                 const authorLabel = a.author?.full_name || a.author?.email || 'Admin';
+                
                 return (
                   <div key={a.id} className="rounded-[10px] border border-line-soft bg-ground p-3">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -271,7 +292,7 @@ export default function Announcements({
                     </div>
 
                     {a.body && (
-                      <p className="whitespace-pre-wrap break-words text-sm text-ink-2">{a.body}</p>
+                      <p className="whitespace-pre-wrap break-words text-sm text-ink-2">{linkify(a.body)}</p>
                     )}
 
                     {a.attachment_url && a.attachment_type === 'image' && href && (
