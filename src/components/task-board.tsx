@@ -33,6 +33,7 @@ const fieldClass =
 
 export default function TaskBoard({
   projectId,
+  channelId,
   initialTasks,
   members,
   currentUserId,
@@ -40,6 +41,7 @@ export default function TaskBoard({
   isAdmin = false,
 }: {
   projectId: string;
+  channelId: string;
   initialTasks: Task[];
   members: Member[];
   currentUserId: string;
@@ -67,6 +69,7 @@ export default function TaskBoard({
       .from('tasks')
       .insert({
         project_id: projectId,
+        channel_id: channelId,
         title,
         description,
         priority,

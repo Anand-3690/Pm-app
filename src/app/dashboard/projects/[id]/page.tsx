@@ -7,6 +7,7 @@ import TaskBoard from '@/components/task-board';
 import DeleteProjectButton from '@/components/delete-project-button';
 import { PROJECT_STATUS_STAMP, projectStatusLabel } from '@/lib/ui-tokens';
 import Announcements from '@/components/announcements';
+import ProjectWorkspace from '@/components/project-workspace';
 
 export default async function ProjectDetailPage({
   params,
@@ -40,6 +41,13 @@ export default async function ProjectDetailPage({
   .eq('id', user.id)
   .single();
   const canPostAnnouncements = isAdmin || !!me?.is_super_admin;
+
+  const { data: channels } = await supabase
+  .from('channels')
+  .select('id, project_id, name, position')
+  .eq('project_id', id)
+  .order('position', { ascending: true })
+  .order('created_at', { ascending: true });
 
   const { data: tasks } = await supabase
     .from('tasks')
@@ -84,9 +92,10 @@ export default async function ProjectDetailPage({
         canPost={canPostAnnouncements}
       />
 
-      <TaskBoard
+      <ProjectWorkspace
         projectId={id}
-        initialTasks={(tasks as any) || []}
+        channels={(channels as any) || []}
+        allTasks={(tasks as any) || []}
         members={(members as any) || []}
         currentUserId={user.id}
         unreadCounts={unreadMap}
