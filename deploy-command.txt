@@ -1,0 +1,1 @@
+cd ~/projects/Pm-app && docker compose pull && docker compose up -d

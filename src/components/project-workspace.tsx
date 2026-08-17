@@ -62,6 +62,7 @@ export default function ProjectWorkspace({
           key={activeChannelId}
           projectId={projectId}
           channelId={activeChannelId}
+          channels={channels}
           initialTasks={channelTasks}
           members={members}
           currentUserId={currentUserId}

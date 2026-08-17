@@ -28,6 +28,7 @@ export type ProjectMember = {
 export type Task = {
   id: string;
   project_id: string;
+  channel_id: string | null;
   title: string;
   description: string | null;
   status: 'todo' | 'in_progress' | 'done';

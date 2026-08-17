@@ -33,6 +33,7 @@ const fieldClass =
 
 export default function TaskBoard({
   projectId,
+  channels,
   channelId,
   initialTasks,
   members,
@@ -41,6 +42,7 @@ export default function TaskBoard({
   isAdmin = false,
 }: {
   projectId: string;
+  channels: { id: string; name: string }[];
   channelId: string;
   initialTasks: Task[];
   members: Member[];
@@ -290,6 +292,7 @@ export default function TaskBoard({
         <TaskDrawer
           task={activeTask}
           members={members}
+          channels={channels}
           currentUserId={currentUserId}
           isAdmin={isAdmin}
           onClose={() => {
@@ -300,6 +303,12 @@ export default function TaskBoard({
             updateStatus(activeTask.id, status);
             setActiveTask({ ...activeTask, status });
           }}
+          onTaskMoved={(taskId) =>                          // ADD
+            setTasks((prev) => prev.filter((t) => t.id !== taskId))
+          }
+          onTaskDeleted={(taskId) =>                        // ADD
+            setTasks((prev) => prev.filter((t) => t.id !== taskId))
+          }
         />
       )}
     </div>

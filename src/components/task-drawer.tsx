@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  X, Send, Paperclip, CornerUpLeft, Check, CheckCheck, FileText, Image as ImageIcon,
+  X, Send, Paperclip, CornerUpLeft, Check, CheckCheck, FileText, Image as ImageIcon, MoreVertical, Trash2
 } from 'lucide-react';
 import { avatarColor } from '@/lib/avatar-color';
 import { useSignedUrls } from '@/lib/use-signed-urls';
@@ -78,17 +78,23 @@ function linkify(text: string, isMine: boolean) {
 export default function TaskDrawer({
   task,
   members,
+  channels,
   currentUserId,
   isAdmin,
   onClose,
   onStatusChange,
+  onTaskMoved,       // ADD
+  onTaskDeleted,
 }: {
   task: Task;
   members: Member[];
+  channels: { id: string; name: string }[];
   currentUserId: string;
   isAdmin: boolean;
   onClose: () => void;
   onStatusChange: (status: Task['status']) => void;
+  onTaskMoved?: (taskId: string) => void;       // ADD
+  onTaskDeleted?: (taskId: string) => void;     // ADD
 }) {
   const supabase = createClient();
   const [messages, setMessages] = useState<MessageWithReads[]>([]);
@@ -98,6 +104,37 @@ export default function TaskDrawer({
   const [sending, setSending] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showMedia, setShowMedia] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const canManage = isAdmin || task.created_by === currentUserId;
+
+  const moveToChannel = async (channelId: string) => {
+    setMoving(true);
+    const { error } = await supabase
+      .from('tasks')
+      .update({ channel_id: channelId })
+      .eq('id', task.id);
+    setMoving(false);
+    setMenuOpen(false);
+    if (!error) {
+      onTaskMoved?.(task.id);
+      onClose();
+    } else {
+      alert('Move failed: ' + error.message);
+    }
+  };
+
+  const deleteTask = async () => {
+    if (!confirm('Delete this task and all its chat? This cannot be undone.')) return;
+    const { error } = await supabase.from('tasks').delete().eq('id', task.id);
+    if (!error) {
+      onTaskDeleted?.(task.id);
+      onClose();
+    } else {
+      alert('Delete failed: ' + error.message);
+    }
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const signedUrls = useSignedUrls(supabase, messages);
@@ -351,6 +388,59 @@ export default function TaskDrawer({
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
+            {canManage && (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen((o) => !o)}
+                  aria-label="Task options"
+                  className="rounded-md p-1.5 text-ink-3 transition-colors hover:bg-chip hover:text-ink"
+                >
+                  <MoreVertical size={18} />
+                </button>
+
+                {menuOpen && (
+                  <>
+                    {/* click-away backdrop */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setMenuOpen(false)}
+                      aria-hidden="true"
+                    />
+                    <div className="absolute right-0 z-50 mt-1 w-56 rounded-lg border border-line bg-surface py-1 shadow-lg">
+                      <p className="rule-label px-3 py-1.5 text-ink-4">Move to channel</p>
+                      <div className="max-h-48 overflow-y-auto">
+                        {channels
+                          .filter((c) => c.id !== task.channel_id)
+                          .map((c) => (
+                            <button
+                              key={c.id}
+                              onClick={() => moveToChannel(c.id)}
+                              disabled={moving}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-chip disabled:opacity-50"
+                            >
+                              <span className="text-ink-4">#</span>
+                              {c.name}
+                            </button>
+                          ))}
+                        {channels.filter((c) => c.id !== task.channel_id).length === 0 && (
+                          <p className="px-3 py-2 text-xs text-ink-4">No other channels</p>
+                        )}
+                      </div>
+
+                      <div className="my-1 border-t border-line" />
+
+                      <button
+                        onClick={deleteTask}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        <Trash2 size={14} /> Delete task
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <button
               onClick={() => setShowMedia(true)}
               title="Shared media"
@@ -359,6 +449,7 @@ export default function TaskDrawer({
             >
               <ImageIcon size={18} />
             </button>
+
             <button
               onClick={onClose}
               aria-label="Close"
