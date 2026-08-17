@@ -190,24 +190,30 @@ export default function ChannelBar({
                 <Hash size={13} className={active ? 'text-signal-ink' : 'text-ink-4'} />
                 {c.name}
               </button>
+              {/* Controls show on the ACTIVE tab (works on touch — no hover
+                  needed) and also on hover for mouse users on inactive tabs. */}
               {isAdmin && (
-                <span className="ml-0.5 hidden items-center gap-0.5 group-hover:flex">
+                <span
+                  className={`ml-0.5 items-center gap-1 ${
+                    active ? 'flex' : 'hidden group-hover:flex'
+                  }`}
+                >
                   <button
                     onClick={() => {
                       setEditingId(c.id);
                       setEditName(c.name);
                     }}
                     aria-label="Rename"
-                    className="text-ink-4 hover:text-ink"
+                    className="p-0.5 text-ink-4 hover:text-ink"
                   >
-                    <Pencil size={11} />
+                    <Pencil size={12} />
                   </button>
                   <button
                     onClick={() => remove(c.id)}
                     aria-label="Delete"
-                    className="text-ink-4 hover:text-destructive"
+                    className="p-0.5 text-ink-4 hover:text-destructive"
                   >
-                    <Trash2 size={11} />
+                    <Trash2 size={12} />
                   </button>
                 </span>
               )}
