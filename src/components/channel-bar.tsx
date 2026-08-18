@@ -13,9 +13,10 @@ export type Channel = {
 
 export default function ChannelBar({
   projectId,
-  channels: initialChannels,
+  channels,
   activeId,
   onSelect,
+  onChannelsChange,
   isAdmin,
   currentUserId,
 }: {
@@ -23,27 +24,17 @@ export default function ChannelBar({
   channels: Channel[];
   activeId: string | null;
   onSelect: (id: string) => void;
+  onChannelsChange: (next: Channel[], selectId?: string) => void;
   isAdmin: boolean;
   currentUserId: string;
 }) {
   const supabase = createClient();
-  const [channels, setChannels] = useState<Channel[]>(initialChannels);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const refresh = async () => {
-    const { data } = await supabase
-      .from('channels')
-      .select('id, project_id, name, position')
-      .eq('project_id', projectId)
-      .order('position', { ascending: true })
-      .order('created_at', { ascending: true });
-    setChannels((data as Channel[]) || []);
-  };
 
   const create = async () => {
     if (!newName.trim()) return;
@@ -67,10 +58,11 @@ export default function ChannelBar({
       setError(error.message);
       return;
     }
-    setChannels((prev) => [...prev, data as Channel]);
+    // Add to the parent's list AND select it — this makes the task board
+    // (and its New task button) appear immediately, no refresh needed.
+    onChannelsChange([...channels, data as Channel], (data as Channel).id);
     setNewName('');
     setCreating(false);
-    if (data) onSelect((data as Channel).id);
   };
 
   const rename = async (id: string) => {
@@ -78,7 +70,9 @@ export default function ChannelBar({
     setBusy(true);
     await supabase.from('channels').update({ name: editName.trim() }).eq('id', id);
     setBusy(false);
-    setChannels((prev) => prev.map((c) => (c.id === id ? { ...c, name: editName.trim() } : c)));
+    onChannelsChange(
+      channels.map((c) => (c.id === id ? { ...c, name: editName.trim() } : c))
+    );
     setEditingId(null);
   };
 
@@ -87,7 +81,6 @@ export default function ChannelBar({
     setError(null);
     const { error } = await supabase.from('channels').delete().eq('id', id);
     if (error) {
-      // The DB trigger raises a friendly message when the channel has tasks.
       setError(
         error.message.includes('still has tasks')
           ? 'That channel still has tasks. Move or delete them first.'
@@ -95,11 +88,7 @@ export default function ChannelBar({
       );
       return;
     }
-    const remaining = channels.filter((c) => c.id !== id);
-    setChannels(remaining);
-    if (activeId === id) {
-      onSelect(remaining[0]?.id ?? '');
-    }
+    onChannelsChange(channels.filter((c) => c.id !== id));
   };
 
   // Empty project — no channels at all.

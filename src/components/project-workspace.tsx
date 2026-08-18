@@ -13,14 +13,13 @@ type Member = {
 };
 
 /**
- * Client wrapper that owns the active-channel state and renders the channel
- * tab strip above the task board. Tasks are fetched once on the server (all
- * tasks for the project) and filtered here by the selected channel, so
- * switching channels is instant with no server round-trip.
+ * Owns the channel list AND the active channel, so creating/deleting a
+ * channel in ChannelBar updates the workspace immediately — the task board
+ * and its "New task" button appear without a page refresh.
  */
 export default function ProjectWorkspace({
   projectId,
-  channels,
+  channels: initialChannels,
   allTasks,
   members,
   currentUserId,
@@ -35,8 +34,9 @@ export default function ProjectWorkspace({
   unreadCounts: Record<string, number>;
   isAdmin: boolean;
 }) {
+  const [channels, setChannels] = useState<Channel[]>(initialChannels);
   const [activeChannelId, setActiveChannelId] = useState<string>(
-    channels[0]?.id ?? ''
+    initialChannels[0]?.id ?? ''
   );
 
   const channelTasks = useMemo(
@@ -46,6 +46,17 @@ export default function ProjectWorkspace({
 
   const hasChannels = channels.length > 0;
 
+  // Called by ChannelBar whenever the channel set changes.
+  const handleChannelsChange = (next: Channel[], selectId?: string) => {
+    setChannels(next);
+    if (selectId) {
+      setActiveChannelId(selectId);
+    } else if (!next.find((c) => c.id === activeChannelId)) {
+      // active channel was deleted — fall back to the first remaining one
+      setActiveChannelId(next[0]?.id ?? '');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <ChannelBar
@@ -53,6 +64,7 @@ export default function ProjectWorkspace({
         channels={channels}
         activeId={activeChannelId || null}
         onSelect={setActiveChannelId}
+        onChannelsChange={handleChannelsChange}
         isAdmin={isAdmin}
         currentUserId={currentUserId}
       />
