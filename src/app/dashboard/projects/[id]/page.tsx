@@ -3,7 +3,7 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import MembersPanel from '@/components/members-panel';
-import TaskBoard from '@/components/task-board';
+import ProjectStatusToggle from '@/components/project-status-toggle';
 import DeleteProjectButton from '@/components/delete-project-button';
 import { PROJECT_STATUS_STAMP, projectStatusLabel } from '@/lib/ui-tokens';
 import Announcements from '@/components/announcements';
@@ -79,6 +79,7 @@ export default async function ProjectDetailPage({
             <span className={`stamp ${PROJECT_STATUS_STAMP[project.status] ?? 'bg-chip text-ink-2'}`}>
               {projectStatusLabel(project.status)}
             </span>
+            {isAdmin && <ProjectStatusToggle projectId={id} status={project.status} />}
             {isAdmin && <DeleteProjectButton projectId={id} projectTitle={project.title} />}
           </div>
         </div>
