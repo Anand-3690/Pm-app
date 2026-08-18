@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { Trash2, X } from 'lucide-react';
 
 export default function DeleteProjectButton({
@@ -13,7 +12,6 @@ export default function DeleteProjectButton({
   projectTitle: string;
 }) {
   const router = useRouter();
-  const supabase = createClient();
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -22,9 +20,15 @@ export default function DeleteProjectButton({
   const handleDelete = async () => {
     setDeleting(true);
     setError(null);
-    const { error } = await supabase.from('projects').delete().eq('id', projectId);
-    if (error) {
-      setError(error.message);
+    // Server route removes storage files, then deletes the project row.
+    const res = await fetch('/api/delete-project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId }),
+    });
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: 'Delete failed' }));
+      setError(error || 'Delete failed');
       setDeleting(false);
       return;
     }
@@ -59,7 +63,7 @@ export default function DeleteProjectButton({
 
             <p className="mb-3 text-sm text-ink-2">
               This permanently deletes <strong className="text-ink">{projectTitle}</strong>, all its
-              tasks, and all chat history. This cannot be undone.
+              tasks, chat history, and uploaded files. This cannot be undone.
             </p>
             <p className="mb-1.5 text-xs text-ink-3">
               Type <strong className="text-ink">{projectTitle}</strong> to confirm:
