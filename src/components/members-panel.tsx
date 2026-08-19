@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { UserPlus, X, Shield, User as UserIcon, Search } from 'lucide-react';
+import { UserPlus, X, Shield, User as UserIcon, Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { avatarColor } from '@/lib/avatar-color';
 import Avatar from './avatar';
 
@@ -31,7 +31,8 @@ export default function MembersPanel({
 }) {
   const router = useRouter();
   const supabase = createClient();
-  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false); // collapsed by default
+  const [open, setOpen] = useState(false);          // add-member modal
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProfileResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -103,45 +104,89 @@ export default function MembersPanel({
     router.refresh();
   };
 
+  // Up to 5 avatars in the collapsed header, then "+N".
+  const preview = members.slice(0, 5);
+  const overflow = members.length - preview.length;
+
   return (
-    <div className="rounded-[12px] border border-line bg-surface p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-display text-lg font-bold text-ink">Members</h2>
+    <div className="rounded-[12px] border border-line bg-surface">
+      {/* Header — always visible. Tap to expand/collapse. */}
+      <div className="flex items-center justify-between gap-3 px-5 py-3">
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="flex min-w-0 flex-1 items-center gap-2.5"
+        >
+          {expanded ? (
+            <ChevronDown size={16} className="shrink-0 text-ink-3" />
+          ) : (
+            <ChevronRight size={16} className="shrink-0 text-ink-3" />
+          )}
+          <span className="font-display text-lg font-bold text-ink">Members</span>
+
+          {/* Collapsed preview: overlapping avatars + count */}
+          {!expanded && (
+            <span className="flex items-center">
+              <span className="flex -space-x-2">
+                {preview.map((m) => (
+                  <span key={m.id} className="rounded-full ring-2 ring-surface">
+                    <Avatar
+                      url={m.profiles.avatar_url}
+                      name={m.profiles.full_name || m.profiles.email}
+                      size={24}
+                    />
+                  </span>
+                ))}
+              </span>
+              {overflow > 0 && (
+                <span className="ml-1.5 text-xs font-medium text-ink-3">+{overflow}</span>
+              )}
+              <span className="ml-2 rounded-full bg-chip px-2 py-0.5 text-xs text-ink-3">
+                {members.length}
+              </span>
+            </span>
+          )}
+        </button>
+
         {isAdmin && (
           <button
             onClick={() => setOpen(true)}
-            className="flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-ink-2 transition-colors hover:border-signal hover:text-ink"
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-ink-2 transition-colors hover:border-signal hover:text-ink"
           >
-            <UserPlus size={14} /> Add member
+            <UserPlus size={14} /> Add
           </button>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {members.map((m) => (
-          <div
-            key={m.id}
-            className="flex items-center gap-2 rounded-full border border-line bg-ground py-1 pl-1 pr-3 text-sm"
-          >
-            <Avatar
-              url={m.profiles.avatar_url}
-              name={m.profiles.full_name || m.profiles.email}
-              size={24}
-            />
-            <span className="text-ink">{m.profiles.full_name || m.profiles.email}</span>
-            {m.role === 'admin' ? (
-              <Shield size={12} className="text-signal-ink" />
-            ) : (
-              <UserIcon size={12} className="text-ink-4" />
-            )}
-            {isAdmin && m.role !== 'admin' && (
-              <button onClick={() => handleRemove(m.id)} aria-label="Remove member">
-                <X size={12} className="text-ink-4 transition-colors hover:text-destructive" />
-              </button>
-            )}
+      {/* Expanded: full member list */}
+      {expanded && (
+        <div className="border-t border-line px-5 py-4">
+          <div className="flex flex-wrap gap-2">
+            {members.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center gap-2 rounded-full border border-line bg-ground py-1 pl-1 pr-3 text-sm"
+              >
+                <Avatar
+                  url={m.profiles.avatar_url}
+                  name={m.profiles.full_name || m.profiles.email}
+                  size={24}
+                />
+                <span className="text-ink">{m.profiles.full_name || m.profiles.email}</span>
+                {m.role === 'admin' ? (
+                  <Shield size={12} className="text-signal-ink" />
+                ) : (
+                  <UserIcon size={12} className="text-ink-4" />
+                )}
+                {isAdmin && m.role !== 'admin' && (
+                  <button onClick={() => handleRemove(m.id)} aria-label="Remove member">
+                    <X size={12} className="text-ink-4 transition-colors hover:text-destructive" />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">

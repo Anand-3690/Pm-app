@@ -59,7 +59,7 @@ export default function Announcements({
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [signed, setSigned] = useState<Record<string, string | null>>({});
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   // compose / edit state
   const [body, setBody] = useState('');

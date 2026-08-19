@@ -9,6 +9,13 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  const { data: me } = await supabase
+  .from('profiles')
+  .select('is_super_admin')
+  .eq('id', user.id)
+  .single();
+  const canCreate = !!me?.is_super_admin;
+
   // Get all project_members rows for this user, joined to the project itself
   const { data: memberships } = await supabase
     .from('project_members')
@@ -39,19 +46,23 @@ export default async function DashboardPage() {
           <h1 className="font-display text-2xl font-bold text-ink">Your projects</h1>
           <p className="mt-0.5 text-sm text-ink-3">Everything you own or belong to</p>
         </div>
-        <NewProjectDialog userId={user.id} />
+        {canCreate && <NewProjectDialog userId={user.id} />}
       </div>
 
     {projects.length === 0 ? (
       <div className="rounded-[10px] border border-dashed border-line bg-surface px-6 py-14 text-center">
-        <p className="font-display text-lg font-bold text-ink">Start your first project</p>
+        <p className="font-display text-lg font-bold text-ink">
+          {canCreate ? 'Start your first project' : 'No projects yet'}
+        </p>
         <p className="mx-auto mt-1 max-w-sm text-sm text-ink-3">
-          A project holds your tasks, drawings and the chat around them.
+          {canCreate
+            ? 'A project holds your tasks, drawings and the chat around them.'
+            : 'An admin will add you to projects. They\u2019ll appear here.'}
         </p>
       </div>
     ) : (
       <ProjectList projects={projects} currentUserId={user.id} />
-    )} 
+    )}
     </div>
   );
 }
