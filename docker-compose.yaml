@@ -14,10 +14,12 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
+    environment:
+      - SUPABASE_INTERNAL_URL=http://supabase-kong:8000
     networks:
       - default
       - supabase_default
 
-  networks:
-    supabase_default:
-      external: true
+networks:
+  supabase_default:
+    external: true
