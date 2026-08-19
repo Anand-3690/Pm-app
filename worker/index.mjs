@@ -23,7 +23,8 @@ async function sendToUsers(userIds, payload) {
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
     .in('user_id', uniqueIds);
-
+    console.log('sendToUsers: users', uniqueIds.length, 'subs found', subs?.length ?? 0);
+    
   for (const sub of subs || []) {
     try {
       await webpush.sendNotification(
@@ -67,6 +68,7 @@ supabase
     const recipientIds = (participants || [])
       .map((p) => p.user_id)
       .filter((id) => id !== msg.sender_id);
+      console.log('MSG task', msg.task_id, 'parts', participants?.length, 'recips', recipientIds.length);
 
     const senderName = sender?.full_name || sender?.email || 'Someone';
     const body = msg.attachment_url ? `${senderName} sent an attachment` : `${senderName}: ${msg.content}`;
