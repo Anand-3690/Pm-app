@@ -536,7 +536,7 @@ export default function TaskDrawer({
         {/* Composer */}
         <form
           onSubmit={handleSend}
-          className="flex items-center gap-2 border-t border-line bg-surface px-3 py-2.5"
+          className="flex items-end gap-2 border-t border-line bg-surface px-3 py-2.5"
         >
           <input
             type="file"
@@ -554,12 +554,17 @@ export default function TaskDrawer({
           >
             <Paperclip size={20} />
           </button>
-          <input
+          <textarea
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
+            }}
             placeholder={uploadingFile ? 'Uploading…' : 'Type a message'}
             disabled={uploadingFile}
-            className="flex-1 rounded-full border border-line bg-ground px-4 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-4 focus:border-signal focus:ring-2 focus:ring-signal/25"
+            rows={1}
+            className="max-h-32 flex-1 resize-none rounded-2xl border border-line bg-ground px-4 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-4 focus:border-signal focus:ring-2 focus:ring-signal/25"
           />
           <button
             type="submit"
