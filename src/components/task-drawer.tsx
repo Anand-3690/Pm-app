@@ -140,8 +140,9 @@ export default function TaskDrawer({
 
   const signedUrls = useSignedUrls(supabase, messages);
 
+  const [participantCount, setParticipantCount] = useState(0);
   const profileById = (id: string) => members.find((m) => m.user_id === id)?.profiles;
-  const recipientCount = members.length - 1; // everyone except the sender
+  const recipientCount = Math.max(0, participantCount - 1); // participants except the sender
 
   const markRead = async (messageIds: string[]) => {
     if (messageIds.length === 0) return;
@@ -154,6 +155,13 @@ export default function TaskDrawer({
     let readsChannel: ReturnType<typeof supabase.channel>;
 
     const load = async () => {
+      
+      const { count } = await supabase
+        .from('task_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('task_id', task.id);
+      setParticipantCount(count ?? 0);
+
       const { data } = await supabase
         .from('messages')
         .select(
