@@ -74,3 +74,54 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// ─────────────────────────────────────────────────────────────
+// PUSH NOTIFICATIONS — add these two listeners to public/sw.js.
+// They were dropped when the service worker was rewritten for
+// auto-update. Without them, pushes arrive but are never shown.
+//
+// The worker sends: { title, body, url }
+// ─────────────────────────────────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload = {};
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: 'SEVAK', body: event.data.text() };
+  }
+
+  const title = payload.title || 'SEVAK';
+  const options = {
+    body: payload.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: { url: payload.url || '/dashboard' },
+    tag: payload.url || 'sevak',   // collapses duplicate notifications for the same target
+    renotify: true,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/dashboard';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // If a window is already open, focus it and navigate.
+      for (const client of clients) {
+        if ('focus' in client) {
+          client.focus();
+          if ('navigate' in client) client.navigate(url);
+          return;
+        }
+      }
+      // Otherwise open a new window.
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
+});
