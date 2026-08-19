@@ -136,6 +136,7 @@ export default function TaskDrawer({
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const signedUrls = useSignedUrls(supabase, messages);
 
@@ -238,6 +239,7 @@ export default function TaskDrawer({
 
     if (!error) {
       setText('');
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
       setReplyTo(null);
     }
     setSending(false);
@@ -554,7 +556,7 @@ export default function TaskDrawer({
           >
             <Paperclip size={20} />
           </button>
-          <textarea
+          <textarea ref={textareaRef}
             value={text}
             onChange={(e) => {
               setText(e.target.value);
