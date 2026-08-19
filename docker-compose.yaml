@@ -14,3 +14,10 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
+    networks:
+      - default
+      - supabase_default
+
+  networks:
+    supabase_default:
+      external: true

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_INTERNAL_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
@@ -77,7 +77,7 @@ supabase
       url: `${APP_URL}/dashboard/projects/${task.project_id}`,
     });
   })
-  .subscribe();
+  .subscribe((status) => console.log('worker-messages status:', status));
 
 // New task with an assignee → notify them
 supabase
