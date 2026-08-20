@@ -136,6 +136,7 @@ docker rm -f pgtest
 - **Roles:** `is_primary_admin` (the top account), `is_super_admin` (can create users / grant super-admin), plus per-project `role` (admin/member) in `project_members`.
 - **Forced password change:** `must_change_password` on the profile; enforced in **middleware** (server-side, can't be bypassed by the client). Cleared via a server route using the service-role client (a normal user can't clear it themselves because of the guard trigger below).
 - **User creation** runs in a **server route** (`/api/admin/create-user`) using the service-role key — never client-side.
+- **Project creation is restricted to super admins.** RLS policy `projects_insert_super_admin` (WITH CHECK `created_by = auth.uid() AND current_user_is_super_admin()`) enforces it at the database; the dashboard "New project" button is gated to super admins in the UI. Existing projects created under the old permissive rule are untouched. The creator is still added as project admin via a client-side `project_members` insert in the New Project dialog (no DB trigger does this).
 
 ### The privilege-escalation guard (important)
 
@@ -168,6 +169,18 @@ A separate **push worker** (`worker/index.mjs`, image `pm-app-push-worker`) subs
 - **VAPID keys:** public key is `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (browser-safe); private key is `VAPID_PRIVATE_KEY` (server-only, in `.env.production`, never `NEXT_PUBLIC_`).
 - The worker uses the **service-role client** (bypasses RLS) — correct, since it must read all members and subscriptions.
 - Runs with `restart: unless-stopped`, in the same compose file as the app.
+
+### The worker MUST reach Supabase over the internal Docker network
+
+The worker connects to Supabase Realtime for `postgres_changes`. It must do this over the **internal Docker network** (`http://supabase-kong:8000`), NOT the public `https://api.sevak.live` URL. Over the public URL, the realtime websocket goes out through Cloudflare DNS → router → nginx → Kong and the `postgres_changes` stream silently fails to flow back — the worker connects (logs "SUBSCRIBED") but receives no events. Notifications then silently stop while everything else works.
+
+Setup: the worker service is joined to the external `supabase_default` network in `docker-compose.yaml`, and reads `SUPABASE_INTERNAL_URL=http://supabase-kong:8000` (with fallback to the public URL). **This breaks silently whenever the Docker networks are recreated** — e.g. the folder move from `~/Pm-app` to `~/projects/Pm-app` recreated `pm-app_default` and severed the worker's path to Supabase's network. If notifications stop, check this first.
+
+**Diagnosing push:** every `.subscribe()` should carry a status callback (`.subscribe((s) => console.log('worker-messages:', s))`) — a bare `.subscribe()` gives no signal, and the "connected and listening" log is unconditional and meaningless on its own. Watch for `SUBSCRIBED`. To trace a send end-to-end, temporary logs in the message handler (participant/recipient counts) and in `sendToUsers` (subs found) pinpoint whether it's a no-recipients, no-subscription, or delivery failure.
+
+### The service worker owns push display — don't lose it in SW rewrites
+
+`public/sw.js` handles BOTH caching/auto-update AND push. The push flow needs two listeners: a `push` handler that calls `self.registration.showNotification(...)`, and a `notificationclick` handler that focuses/opens the app. **A past SW rewrite for auto-update dropped these**, causing pushes to arrive and vanish (worker sent successfully, no errors anywhere, nothing displayed). Any change to `sw.js` must preserve the push + notificationclick handlers.
 
 **iOS caveat:** web push only works when the PWA is **installed to the home screen**, not in a Safari tab. A solo-member project produces no notifications (author is excluded, no other recipients).
 
@@ -207,6 +220,10 @@ A separate **push worker** (`worker/index.mjs`, image `pm-app-push-worker`) subs
 - **Local dev auth is flaky against remote Supabase.** Login can hang (cookie race) or throw "Invalid Refresh Token" (stale cookie). Fixes: login uses `window.location.href` (full navigation); when a stale cookie jams it, **DevTools → Clear site data**. Production is unaffected. A proper fix (local Supabase for dev) is an open item.
 - **Deploy command changed** after the folder move: `cd ~/projects/Pm-app && docker compose pull && docker compose up -d`.
 - **`docker compose logs` needs to run from the compose directory** (`~/projects/Pm-app`), else "no configuration file provided."
+- **The push worker must use the internal Supabase URL** (`http://supabase-kong:8000`), not the public one — see section 8. Breaks silently when Docker networks are recreated.
+- **`sw.js` rewrites must keep the push + notificationclick handlers** — see section 8. Losing them makes pushes arrive but never display.
+- **Read-receipt "everyone read" is counted from task PARTICIPANTS, not project members.** `recipientCount` in the task drawer must derive from the count of `task_participants` for the task (minus the sender), not `members.length`. Using project members makes the "all read → orange ticks" threshold unreachable once a project has more members than any single task has participants (the reads only ever come from participants). Symptom: ticks never turn orange even though reads are recorded.
+- **Realtime regressions cluster and are often silent.** Three broke in one session (worker network split, SW push handler lost, tick threshold) — all "no error anywhere" failures. When something realtime stops (notifications, live chat, ticks), suspect: is the worker on the internal network, does `sw.js` still handle push, and is the count logic comparing the right population.
 
 ---
 
@@ -246,4 +263,4 @@ docker inspect pm-app --format '{{.Config.Image}}'
 
 ---
 
-*Last updated: August 2026. Maintainer: Denish (anandsagardas).*
+*Last updated: August 2026 (rev. 2 — added push-worker internal-network requirement, SW push-handler note, read-receipt participant-count fix, super-admin-only project creation). Maintainer: Denish (anandsagardas).*
