@@ -32,7 +32,7 @@ export default function DeleteProjectButton({
       setDeleting(false);
       return;
     }
-    router.push('/dashboard');
+    router.push('/dashboard/projects');
     router.refresh();
   };
 

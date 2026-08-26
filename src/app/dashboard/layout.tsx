@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import SignOutButton from '@/components/sign-out-button';
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
+import BottomTabs from '@/components/bottom-tabs';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -27,6 +28,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </Link>
 
           <div className="flex items-center gap-3 text-sm">
+            <nav className="hidden items-center gap-4 sm:flex">
+              <Link
+                href="/dashboard/chats"
+                className="text-ink-2 transition-colors hover:text-ink"
+              >
+                Chats
+              </Link>
+              <Link
+                href="/dashboard/projects"
+                className="text-ink-2 transition-colors hover:text-ink"
+              >
+                Projects
+              </Link>
+            </nav>
             {profile?.is_super_admin && (
               <Link
                 href="/dashboard/admin"
@@ -46,7 +61,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-6 pb-20 sm:pb-6">{children}</main>
+      <BottomTabs />
     </div>
   );
 }

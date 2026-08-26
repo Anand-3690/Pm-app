@@ -3,7 +3,8 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  X, Send, Paperclip, CornerUpLeft, Check, CheckCheck, FileText, Image as ImageIcon, MoreVertical, Trash2
+  X, Send, Paperclip, CornerUpLeft, Check, CheckCheck, FileText, Image as ImageIcon, MoreVertical, Trash2,
+  ArrowLeft
 } from 'lucide-react';
 import { avatarColor } from '@/lib/avatar-color';
 import { useSignedUrls } from '@/lib/use-signed-urls';
@@ -85,6 +86,7 @@ export default function TaskDrawer({
   onStatusChange,
   onTaskMoved,       // ADD
   onTaskDeleted,
+  fullPage = false,
 }: {
   task: Task;
   members: Member[];
@@ -95,6 +97,7 @@ export default function TaskDrawer({
   onStatusChange: (status: Task['status']) => void;
   onTaskMoved?: (taskId: string) => void;       // ADD
   onTaskDeleted?: (taskId: string) => void;     // ADD
+  fullPage?: boolean;
 }) {
   const supabase = createClient();
   const [messages, setMessages] = useState<MessageWithReads[]>([]);
@@ -356,8 +359,8 @@ export default function TaskDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-ink/40">
-      <div className="relative flex h-full w-full max-w-lg flex-col bg-surface sm:max-w-xl">
+    <div className={fullPage ? 'fixed inset-0 z-50 flex' : 'fixed inset-0 z-50 flex justify-end bg-ink/40'}>
+      <div className={`relative flex h-full flex-col bg-surface ${fullPage ? 'w-full' : 'w-full max-w-lg sm:max-w-xl'}`}>
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b border-line bg-surface px-4 py-3">
           <div className="min-w-0">
@@ -462,10 +465,10 @@ export default function TaskDrawer({
 
             <button
               onClick={onClose}
-              aria-label="Close"
+              aria-label={fullPage ? 'Back' : 'Close'}
               className="rounded-md p-1.5 text-ink-3 transition-colors hover:bg-chip hover:text-ink"
             >
-              <X size={20} />
+              {fullPage ? <ArrowLeft size={20} /> : <X size={20} />}
             </button>
           </div>
         </div>

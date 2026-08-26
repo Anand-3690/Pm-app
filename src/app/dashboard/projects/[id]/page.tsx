@@ -62,7 +62,7 @@ export default async function ProjectDetailPage({
     <div className="space-y-6">
       <div>
         <Link
-          href="/dashboard"
+          href="/dashboard/projects"
           className="mb-3 inline-flex items-center gap-1 text-sm text-ink-3 transition-colors hover:text-ink"
         >
           <ArrowLeft size={14} /> Back to projects
