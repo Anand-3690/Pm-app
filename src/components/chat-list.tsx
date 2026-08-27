@@ -53,14 +53,14 @@ function initials(name: string) {
 }
 
 const GRADIENTS = [
-  'linear-gradient(135deg,#ff8a4c,#e85d2c)',
-  'linear-gradient(135deg,#3ec98a,#159e6a)',
-  'linear-gradient(135deg,#6a63d4,#4a41b0)',
-  'linear-gradient(135deg,#e0785a,#c2462b)',
-  'linear-gradient(135deg,#4d97d6,#2f6fae)',
-  'linear-gradient(135deg,#d98ac0,#b3559a)',
-  'linear-gradient(135deg,#e0a94c,#c2872b)',
-  'linear-gradient(135deg,#5bb8b0,#2f8a82)',
+  'linear-gradient(135deg,#ff7a33,#dd4e1e)',
+  'linear-gradient(135deg,#2fc47f,#0d8a58)',
+  'linear-gradient(135deg,#5b52d0,#3a31a0)',
+  'linear-gradient(135deg,#e2664a,#b23a20)',
+  'linear-gradient(135deg,#3d8ed0,#245f9e)',
+  'linear-gradient(135deg,#d072b5,#a3428a)',
+  'linear-gradient(135deg,#d99a34,#b0741c)',
+  'linear-gradient(135deg,#48b0a8,#227a72)',
 ];
 function gradientFor(key: string) {
   let h = 0;
@@ -184,7 +184,7 @@ export default function ChatList({
       <div
         key={row.task_id}
         onClick={() => router.push(`/dashboard/chats/${row.task_id}`)}
-        className={`relative mx-1.5 my-0.5 flex cursor-pointer gap-3 rounded-xl px-3 py-2.5 pl-3.5 transition-colors ${
+        className={`relative mx-1.5 my-1 flex cursor-pointer gap-3 rounded-xl px-3 py-3 pl-3.5 transition-colors ${
           row.is_pinned
             ? 'bg-[#fffaf3] hover:bg-[#fff5e9]'
             : unread
@@ -197,7 +197,7 @@ export default function ChatList({
         )}
 
         <div
-          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[14px] text-[16px] font-bold tracking-tight text-white"
+          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[14px] text-[16px] font-bold tracking-tight text-white shadow-[0_2px_6px_rgba(30,70,107,0.12)]"
           style={{ background: gradientFor(row.task_id) }}
         >
           {initials(row.task_title)}
@@ -206,7 +206,7 @@ export default function ChatList({
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
             <span
-              className={`truncate text-[15.5px] ${unread ? 'font-bold text-[#1a2e42]' : 'font-medium text-[#1a2e42]'}`}
+              className={`truncate text-[15.5px] ${unread ? 'font-bold text-[#1a2e42]' : 'font-semibold text-[#1a2e42]'}`}
             >
               {row.task_title}
             </span>
@@ -229,7 +229,7 @@ export default function ChatList({
 
           <div className="flex items-center justify-between gap-2">
             <span
-              className={`truncate text-[13px] ${unread ? 'font-medium text-ink-2' : 'text-ink-3'}`}
+              className={`truncate text-[13px] ${unread ? 'font-medium text-ink-2' : 'text-[#7a6f5f]'}`}
             >
               {preview(row, currentUserId)}
             </span>
