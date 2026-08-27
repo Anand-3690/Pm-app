@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Search, Pin, ChevronRight, Check, CheckCheck } from 'lucide-react';
-import Avatar from './avatar';
+import { Search, Pin, ChevronRight, CheckCheck } from 'lucide-react';
 
 export type ChatRow = {
   task_id: string;
@@ -24,7 +23,6 @@ export type ChatRow = {
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-// WhatsApp-style relative time: HH:MM today, weekday this week, else date.
 function chatTime(iso: string | null) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -48,6 +46,28 @@ function preview(row: ChatRow, currentUserId: string) {
   return who ? `${who}: ${text}` : text;
 }
 
+function initials(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return name.trim().slice(0, 2).toUpperCase();
+}
+
+const GRADIENTS = [
+  'linear-gradient(135deg,#ff8a4c,#e85d2c)',
+  'linear-gradient(135deg,#3ec98a,#159e6a)',
+  'linear-gradient(135deg,#6a63d4,#4a41b0)',
+  'linear-gradient(135deg,#e0785a,#c2462b)',
+  'linear-gradient(135deg,#4d97d6,#2f6fae)',
+  'linear-gradient(135deg,#d98ac0,#b3559a)',
+  'linear-gradient(135deg,#e0a94c,#c2872b)',
+  'linear-gradient(135deg,#5bb8b0,#2f8a82)',
+];
+function gradientFor(key: string) {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return GRADIENTS[h % GRADIENTS.length];
+}
+
 export default function ChatList({
   rows: initial,
   currentUserId,
@@ -59,6 +79,71 @@ export default function ChatList({
   const supabase = createClient();
   const [rows, setRows] = useState<ChatRow[]>(initial);
   const [q, setQ] = useState('');
+
+  // Keep state in sync if the server sends fresh rows (e.g. after navigation).
+  useEffect(() => {
+    setRows(initial);
+  }, [initial]);
+
+  // ── Realtime: live-update rows as messages arrive / reads happen ──
+  useEffect(() => {
+    const refreshList = async () => {
+      const { data } = await supabase.rpc('chat_list_for_user');
+      if (data) setRows(data as ChatRow[]);
+    };
+
+    const msgChannel = supabase
+      .channel('chat-list-messages')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const m = payload.new as any;
+          setRows((prev) => {
+            const idx = prev.findIndex((r) => r.task_id === m.task_id);
+            if (idx === -1) {
+              // Message for a task not in the list → brand-new chat; refresh to get its breadcrumb.
+              refreshList();
+              return prev;
+            }
+            const fromMe = m.sender_id === currentUserId;
+            const updated: ChatRow = {
+              ...prev[idx],
+              last_message: m.content ?? null,
+              last_at: m.created_at,
+              last_sender_id: m.sender_id,
+              last_has_attachment: m.attachment_url != null,
+              unread_count: fromMe ? prev[idx].unread_count : prev[idx].unread_count + 1,
+            };
+            const next = [...prev];
+            next.splice(idx, 1);
+            return [updated, ...next]; // move to top; render sort re-orders anyway
+          });
+        }
+      )
+      .subscribe();
+
+    const readsChannel = supabase
+      .channel('chat-list-reads')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'message_reads' },
+        (payload) => {
+          const r = payload.new as any;
+          if (r.user_id !== currentUserId) return; // only my own reads clear my badges
+          // We don't know which task from a single read row cheaply; clear optimistically
+          // by refreshing the unread picture. Cheap enough (only fires on my reads).
+          refreshList();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(msgChannel);
+      supabase.removeChannel(readsChannel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId]);
 
   const togglePin = async (e: React.MouseEvent, row: ChatRow) => {
     e.stopPropagation();
@@ -99,26 +184,39 @@ export default function ChatList({
       <div
         key={row.task_id}
         onClick={() => router.push(`/dashboard/chats/${row.task_id}`)}
-        className="flex cursor-pointer gap-3 px-4 py-3 transition-colors hover:bg-chip/50 active:bg-chip"
+        className={`relative mx-1.5 my-0.5 flex cursor-pointer gap-3 rounded-xl px-3 py-2.5 pl-3.5 transition-colors ${
+          row.is_pinned
+            ? 'bg-[#fffaf3] hover:bg-[#fff5e9]'
+            : unread
+            ? 'bg-surface shadow-[0_1px_2px_rgba(30,70,107,0.05)] hover:bg-chip/40'
+            : 'hover:bg-chip/50'
+        }`}
       >
-        <div className="relative shrink-0">
-          <Avatar url={null} name={row.task_title} size={44} />
+        {unread && (
+          <span className="absolute inset-y-3.5 left-0 w-[3px] rounded-full bg-signal" aria-hidden="true" />
+        )}
+
+        <div
+          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[14px] text-[16px] font-bold tracking-tight text-white"
+          style={{ background: gradientFor(row.task_id) }}
+        >
+          {initials(row.task_title)}
         </div>
-        <div className="min-w-0 flex-1 border-b border-line-soft pb-3">
+
+        <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
             <span
-              className={`truncate text-[15px] ${unread ? 'font-semibold text-ink' : 'font-medium text-ink'}`}
+              className={`truncate text-[15.5px] ${unread ? 'font-bold text-[#1a2e42]' : 'font-medium text-[#1a2e42]'}`}
             >
               {row.task_title}
             </span>
-            <span className={`shrink-0 text-[11px] ${unread ? 'text-signal' : 'text-ink-4'}`}>
+            <span className={`shrink-0 text-[11px] ${unread ? 'font-semibold text-signal' : 'text-ink-4'}`}>
               {chatTime(row.last_at)}
             </span>
           </div>
 
-          {/* breadcrumb — a subtle pill so it reads as context, not another text line */}
-          <div className="mt-1 flex">
-            <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface px-2 py-0.5 text-[10px] text-ink-3">
+          <div className="my-0.5 flex">
+            <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface px-2 py-[1px] text-[10px] font-medium text-ink-3">
               <span className="truncate">{row.project_title}</span>
               {row.channel_name && (
                 <>
@@ -129,20 +227,22 @@ export default function ChatList({
             </span>
           </div>
 
-          <div className="mt-0.5 flex items-center justify-between gap-2">
-            <span className={`truncate text-[13px] ${unread ? 'text-ink-2' : 'text-ink-3'}`}>
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={`truncate text-[13px] ${unread ? 'font-medium text-ink-2' : 'text-ink-3'}`}
+            >
               {preview(row, currentUserId)}
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
               <button
                 onClick={(e) => togglePin(e, row)}
                 aria-label={row.is_pinned ? 'Unpin' : 'Pin'}
-                className={row.is_pinned ? 'text-signal' : 'text-ink-4/0 hover:text-ink-4'}
+                className={row.is_pinned ? 'text-signal' : 'text-transparent hover:text-ink-4'}
               >
                 <Pin size={13} fill={row.is_pinned ? 'currentColor' : 'none'} />
               </button>
               {unread ? (
-                <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-signal px-1.5 text-[11px] font-medium text-white">
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-signal px-1.5 text-[11px] font-bold text-white shadow-[0_1px_3px_rgba(255,107,44,0.4)]">
                   {row.unread_count > 99 ? '99+' : row.unread_count}
                 </span>
               ) : row.last_sender_id === currentUserId ? (
@@ -157,9 +257,8 @@ export default function ChatList({
 
   return (
     <div className="mx-auto max-w-2xl">
-      {/* Search */}
-      <div className="px-4 pb-2 pt-1">
-        <div className="flex items-center gap-2 rounded-full border border-line bg-chip px-3 py-2">
+      <div className="px-3 pb-2 pt-1">
+        <div className="flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-2.5">
           <Search size={16} className="text-ink-4" />
           <input
             value={q}
@@ -179,8 +278,8 @@ export default function ChatList({
       {pinned.length > 0 && (
         <>
           <div className="flex items-center gap-1.5 px-4 pb-1 pt-2">
-            <Pin size={12} className="text-ink-4" />
-            <span className="rule-label text-ink-4">Pinned</span>
+            <Pin size={12} className="text-signal" fill="currentColor" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0a48f]">Pinned</span>
           </div>
           {pinned.map(Row)}
         </>
@@ -189,8 +288,8 @@ export default function ChatList({
       {recent.length > 0 && (
         <>
           {pinned.length > 0 && (
-            <div className="px-4 pb-1 pt-2">
-              <span className="rule-label text-ink-4">Recent</span>
+            <div className="px-4 pb-1 pt-3">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b0a48f]">Recent</span>
             </div>
           )}
           {recent.map(Row)}
