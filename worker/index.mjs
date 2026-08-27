@@ -68,7 +68,7 @@ supabase
     const recipientIds = (participants || [])
       .map((p) => p.user_id)
       .filter((id) => id !== msg.sender_id);
-      console.log('MSG task', msg.task_id, 'parts', participants?.length, 'recips', recipientIds.length);
+      // console.log('MSG task', msg.task_id, 'parts', participants?.length, 'recips', recipientIds.length);
 
     const senderName = sender?.full_name || sender?.email || 'Someone';
     const body = msg.attachment_url ? `${senderName} sent an attachment` : `${senderName}: ${msg.content}`;
@@ -76,7 +76,7 @@ supabase
     await sendToUsers(recipientIds, {
       title: task.title,
       body: body.slice(0, 150),
-      url: `${APP_URL}/dashboard/projects/${task.project_id}`,
+      url: `${APP_URL}/dashboard/chats/${task.id}`,
     });
   })
   .subscribe((status) => console.log('worker-messages status:', status));
@@ -91,7 +91,7 @@ supabase
     await sendToUsers([task.assignee_id], {
       title: 'New task assigned to you',
       body: task.title,
-      url: `${APP_URL}/dashboard/projects/${task.project_id}`,
+      url: `${APP_URL}/dashboard/chats/${task.id}`,
     });
   })
   .subscribe();
@@ -107,7 +107,7 @@ supabase
     await sendToUsers([task.assignee_id], {
       title: 'You were assigned a task',
       body: task.title,
-      url: `${APP_URL}/dashboard/projects/${task.project_id}`,
+      url: `${APP_URL}/dashboard/chats/${task.id}`,
     });
   })
   .subscribe();
