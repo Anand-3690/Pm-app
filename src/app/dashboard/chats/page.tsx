@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ChatList from '@/components/chat-list';
 
+export const dynamic = 'force-dynamic';
+
 // Chat-first home: flat list of task chats the user participates in.
 export default async function ChatsPage() {
   const supabase = await createClient();

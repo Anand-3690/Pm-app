@@ -9,6 +9,8 @@ import { PROJECT_STATUS_STAMP, projectStatusLabel } from '@/lib/ui-tokens';
 import Announcements from '@/components/announcements';
 import ProjectWorkspace from '@/components/project-workspace';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProjectDetailPage({
   params,
 }: {

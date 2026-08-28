@@ -40,7 +40,9 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/api/') ||
     url.hostname.includes('api.sevak.live') ||
     url.pathname.includes('/auth/') ||
-    url.pathname.includes('/realtime/')
+    url.pathname.includes('/realtime/') ||
+    req.headers.get('RSC') === '1' ||                  // Next RSC navigation payloads
+    url.search.includes('_rsc')                        // RSC query param
   ) {
     return; // let the browser handle it normally
   }
