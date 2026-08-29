@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, X, Pencil, Trash2, Hash, Check } from 'lucide-react';
+import { Plus, X, Pencil, Trash2, Hash, Check , MessageCircle} from 'lucide-react';
 
 export type Channel = {
   id: string;
@@ -35,6 +36,17 @@ export default function ChannelBar({
   const [editName, setEditName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const router = useRouter();
+
+  const openChannelChat = async (channelId: string) => {
+    const { data, error } = await supabase.rpc('enable_channel_chat', { p_channel_id: channelId });
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    if (data) router.push(`/dashboard/chats/${data}`);
+  };
 
   const create = async () => {
     if (!newName.trim()) return;
@@ -187,6 +199,14 @@ export default function ChannelBar({
                     active ? 'flex' : 'hidden group-hover:flex'
                   }`}
                 >
+                  <button
+                    onClick={() => openChannelChat(c.id)}
+                    aria-label="Channel chat"
+                    title="Open channel chat"
+                    className="p-0.5 text-ink-4 hover:text-signal-ink"
+                  >
+                    <MessageCircle size={12} />
+                  </button>
                   <button
                     onClick={() => {
                       setEditingId(c.id);

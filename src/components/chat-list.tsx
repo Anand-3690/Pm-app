@@ -18,6 +18,7 @@ export type ChatRow = {
   last_has_attachment: boolean;
   unread_count: number;
   is_pinned: boolean;
+  is_channel_chat: boolean;
 };
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -205,9 +206,8 @@ export default function ChatList({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <span
-              className={`truncate text-[15.5px] ${unread ? 'font-bold text-[#1a2e42]' : 'font-semibold text-[#1a2e42]'}`}
-            >
+            <span className={`truncate text-[15.5px] ${unread ? 'font-semibold text-[#1a2e42]' : 'font-semibold text-[#1a2e42]'}`}>
+              {row.is_channel_chat && <span className="text-ink-4">#</span>}
               {row.task_title}
             </span>
             <span className={`shrink-0 text-[11px] ${unread ? 'font-semibold text-signal' : 'text-ink-4'}`}>

@@ -55,6 +55,7 @@ export default async function ProjectDetailPage({
     .from('tasks')
     .select('*, assignee:profiles!tasks_assignee_id_fkey(id, full_name, email, avatar_url)')
     .eq('project_id', id)
+    .eq('is_channel_chat', false)
     .order('created_at', { ascending: false });
 
   const { data: unreadRows } = await supabase.rpc('unread_counts_by_task', { project_id_param: id });
