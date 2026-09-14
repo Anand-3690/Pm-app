@@ -114,6 +114,7 @@ export default function TaskDrawer({
   const initialIdsRef = useRef<Set<string> | null>(null);
 
   const moveToChannel = async (channelId: string) => {
+    if (task.is_channel_chat) return;
     setMoving(true);
     const { error } = await supabase
       .from('tasks')
@@ -130,6 +131,7 @@ export default function TaskDrawer({
   };
 
   const deleteTask = async () => {
+    if (task.is_channel_chat) return;
     if (!confirm('Delete this task and all its chat? This cannot be undone.')) return;
     const { error } = await supabase.from('tasks').delete().eq('id', task.id);
     if (!error) {
@@ -415,7 +417,7 @@ export default function TaskDrawer({
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            {canManage && (
+            {canManage && !task.is_channel_chat && (
               <div className="relative">
                 <button
                   onClick={() => setMenuOpen((o) => !o)}

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import FullPageChat from '@/components/full-page-chat';
 
+export const dynamic = 'force-dynamic';
+
 // Full-page chat for one task — the WhatsApp-style conversation view.
 export default async function ChatTaskPage({
   params,

@@ -109,9 +109,12 @@ export default function ChatPane({
     onCleared();
   };
 
-  // Local status update so the header reflects a change without a parent board.
-  const handleStatusChange = (status: Task['status']) => {
+  // Update status locally and in Supabase so it persists
+  const handleStatusChange = async (status: Task['status']) => {
     setTask((prev) => (prev ? { ...prev, status } : prev));
+    if (taskId) {
+      await supabase.from('tasks').update({ status }).eq('id', taskId);
+    }
   };
 
   return (

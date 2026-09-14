@@ -102,7 +102,9 @@ supabase
   .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tasks' }, async (payload) => {
     const task = payload.new;
     const old = payload.old;
-    if (!task.assignee_id || task.assignee_id === old.assignee_id) return;
+    // If old.assignee_id is not present (replica identity not full) or assignee didn't change,
+    // skip to avoid false pushes on status/title/comment updates.
+    if (!task.assignee_id || !old || !('assignee_id' in old) || task.assignee_id === old.assignee_id) return;
 
     await sendToUsers([task.assignee_id], {
       title: 'You were assigned a task',

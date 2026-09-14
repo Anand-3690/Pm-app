@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import TaskDrawer from './task-drawer';
 import type { Task } from '@/lib/types';
 
@@ -27,12 +29,19 @@ export default function FullPageChat({
   isAdmin: boolean;
 }) {
   const router = useRouter();
+  const supabase = createClient();
+  const [currentTask, setCurrentTask] = useState<Task>(task);
   const backToList = () => router.push('/dashboard/chats');
+
+  const handleStatusChange = async (status: Task['status']) => {
+    setCurrentTask((prev) => ({ ...prev, status }));
+    await supabase.from('tasks').update({ status }).eq('id', task.id);
+  };
 
   return (
     <TaskDrawer
       fullPage
-      task={task}
+      task={currentTask}
       members={members}
       channels={channels}
       currentUserId={currentUserId}
@@ -40,7 +49,7 @@ export default function FullPageChat({
       onClose={backToList}
       onTaskMoved={backToList}
       onTaskDeleted={backToList}
-      onStatusChange={backToList}
+      onStatusChange={handleStatusChange}
     />
   );
 }

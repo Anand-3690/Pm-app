@@ -199,17 +199,23 @@ export default function ChatList({
   const isOpen = (pid: string) =>
     searching ? true : (expanded[pid] ?? pid === selectedProjectId);
   const toggleGroup = (pid: string) =>
-    setExpanded((prev) => ({ ...prev, [pid]: !prev[pid] }));
+    setExpanded((prev) => ({ ...prev, [pid]: !isOpen(pid) }));
 
   // ── Row renderers ──
   const ChatRowFull = (row: ChatRow) => {
     const unread = row.unread_count > 0;
+    const isSelected = selectedId === row.task_id;
     return (
       <div
         key={row.task_id}
         onClick={() => onOpen ? onOpen(row.task_id, 'chat') : router.push(`/dashboard/chats/${row.task_id}`)}
-        className={`relative mx-1.5 my-1 flex cursor-pointer gap-3 rounded-xl px-3 py-3 pl-3.5 transition-colors ${unread ? 'bg-surface shadow-[0_1px_2px_rgba(30,70,107,0.05)] hover:bg-chip/40' : 'hover:bg-chip/50'
-          }`}
+        className={`relative mx-1.5 my-1 flex cursor-pointer gap-3 rounded-xl px-3 py-3 pl-3.5 transition-colors ${
+          isSelected
+            ? 'bg-[#fff6ec]'
+            : unread
+            ? 'bg-surface shadow-[0_1px_2px_rgba(30,70,107,0.05)] hover:bg-chip/40'
+            : 'hover:bg-chip/50'
+        }`}
       >
         {unread && <span className="absolute inset-y-3.5 left-0 w-[3px] rounded-full bg-signal" aria-hidden="true" />}
         <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[14px] text-[16px] font-bold tracking-tight text-white shadow-[0_2px_6px_rgba(30,70,107,0.12)]"
@@ -256,7 +262,7 @@ export default function ChatList({
       <div
         key={row.task_id}
         onClick={() => onOpen ? onOpen(row.task_id, 'chat') : router.push(`/dashboard/chats/${row.task_id}`)}
-        className={`flex cursor-pointer gap-2.5 border-t border-[#f4ece0] px-3 py-2.5 transition-colors ${selectedId === row.task_id ? 'bg-[#fff6ec]' : 'hover:bg-chip/40'}`}
+        className={`group/row flex cursor-pointer gap-2.5 border-t border-[#f4ece0] px-3 py-2.5 transition-colors ${selectedId === row.task_id ? 'bg-[#fff6ec]' : 'hover:bg-chip/40'}`}
       >
         <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] text-[12px] font-bold text-white"
           style={{ background: gradientFor(row.task_id) }}>
@@ -272,11 +278,24 @@ export default function ChatList({
           </div>
           <div className="flex items-center justify-between gap-2">
             <span className={`truncate text-[12px] ${unread ? 'font-medium text-ink-2' : 'text-[#7a6f5f]'}`}>{preview(row, currentUserId)}</span>
-            {unread ? (
-              <span className="flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-signal px-1.5 text-[10px] font-bold text-white">
-                {row.unread_count > 99 ? '99+' : row.unread_count}
-              </span>
-            ) : row.last_sender_id === currentUserId ? <CheckCheck size={13} className="text-ink-4" /> : null}
+            <span className="flex shrink-0 items-center gap-1.5">
+              <button
+                onClick={(e) => togglePin(e, row)}
+                aria-label={row.is_pinned ? 'Unpin' : 'Pin'}
+                className={`transition-colors ${
+                  row.is_pinned
+                    ? 'text-signal'
+                    : 'text-ink-4/40 hover:text-signal sm:opacity-0 sm:group-hover/row:opacity-100'
+                }`}
+              >
+                <Pin size={12} fill={row.is_pinned ? 'currentColor' : 'none'} />
+              </button>
+              {unread ? (
+                <span className="flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-signal px-1.5 text-[10px] font-bold text-white">
+                  {row.unread_count > 99 ? '99+' : row.unread_count}
+                </span>
+              ) : row.last_sender_id === currentUserId ? <CheckCheck size={13} className="text-ink-4" /> : null}
+            </span>
           </div>
         </div>
       </div>
