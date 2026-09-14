@@ -19,7 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-ground">
       <header className="sticky top-0 z-30 border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        <div className="mx-auto flex max-w-none items-center justify-between gap-4 px-4 py-3">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <span className="h-5 w-1.5 rounded-full bg-signal" aria-hidden="true" />
             <span className="font-display text-xl font-bold tracking-wide text-ink">
@@ -61,7 +61,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6 pb-20 sm:pb-6">{children}</main>
+      <main className="mx-auto max-w-none px-4 py-6 pb-20 sm:pb-6">{children}</main>
       <BottomTabs />
     </div>
   );

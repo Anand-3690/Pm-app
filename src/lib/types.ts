@@ -39,6 +39,7 @@ export type Task = {
   created_at: string;
   updated_at: string;
   assignee?: Profile;
+  is_channel_chat?: boolean;
 };
 
 export type Message = {

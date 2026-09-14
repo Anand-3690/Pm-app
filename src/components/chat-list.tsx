@@ -85,9 +85,13 @@ type Group = {
 export default function ChatList({
   rows: initial,
   currentUserId,
+  onOpen,
+  selectedId,
 }: {
   rows: ChatRow[];
   currentUserId: string;
+  onOpen: (taskId: string, view: 'chat' | 'specs') => void;
+  selectedId?: string | null;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -189,7 +193,11 @@ export default function ChatList({
     return arr;
   }, [rows, q]);
 
-  const isOpen = (pid: string) => (searching ? true : !!expanded[pid]); // auto-open all while searching
+  const selectedProjectId = selectedId
+    ? rows.find((r) => r.task_id === selectedId)?.project_id
+    : null;
+  const isOpen = (pid: string) =>
+    searching ? true : (expanded[pid] ?? pid === selectedProjectId);
   const toggleGroup = (pid: string) =>
     setExpanded((prev) => ({ ...prev, [pid]: !prev[pid] }));
 
@@ -199,7 +207,7 @@ export default function ChatList({
     return (
       <div
         key={row.task_id}
-        onClick={() => router.push(`/dashboard/chats/${row.task_id}`)}
+        onClick={() => onOpen ? onOpen(row.task_id, 'chat') : router.push(`/dashboard/chats/${row.task_id}`)}
         className={`relative mx-1.5 my-1 flex cursor-pointer gap-3 rounded-xl px-3 py-3 pl-3.5 transition-colors ${unread ? 'bg-surface shadow-[0_1px_2px_rgba(30,70,107,0.05)] hover:bg-chip/40' : 'hover:bg-chip/50'
           }`}
       >
@@ -247,8 +255,8 @@ export default function ChatList({
     return (
       <div
         key={row.task_id}
-        onClick={() => router.push(`/dashboard/chats/${row.task_id}`)}
-        className="flex cursor-pointer gap-2.5 border-t border-[#f4ece0] px-3 py-2.5 transition-colors hover:bg-chip/40"
+        onClick={() => onOpen ? onOpen(row.task_id, 'chat') : router.push(`/dashboard/chats/${row.task_id}`)}
+        className={`flex cursor-pointer gap-2.5 border-t border-[#f4ece0] px-3 py-2.5 transition-colors ${selectedId === row.task_id ? 'bg-[#fff6ec]' : 'hover:bg-chip/40'}`}
       >
         <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] text-[12px] font-bold text-white"
           style={{ background: gradientFor(row.task_id) }}>

@@ -1,11 +1,15 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import ChatList from '@/components/chat-list';
+import ChatsTwoPane from '@/components/chats-two-pane';
 
 export const dynamic = 'force-dynamic';
 
-// Chat-first home: flat list of task chats the user participates in.
-export default async function ChatsPage() {
+export default async function ChatsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ open?: string }>;
+}) {
+  const { open } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -14,10 +18,11 @@ export default async function ChatsPage() {
 
   return (
     <div className="-mx-4 -my-6">
-      <div className="px-1 pt-3">
-        <h1 className="px-4 pb-1 font-display text-2xl font-bold text-ink">Chats</h1>
-      </div>
-      <ChatList rows={(rows as any) || []} currentUserId={user.id} />
+      <ChatsTwoPane
+        rows={(rows as any) || []}
+        currentUserId={user.id}
+        initialOpenTaskId={open ?? null}
+      />
     </div>
   );
 }

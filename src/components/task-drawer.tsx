@@ -58,15 +58,14 @@ function linkify(text: string, isMine: boolean) {
   const parts = text.split(/(https?:\/\/[^\s]+)/g);
   return parts.map((part, i) =>
     /^https?:\/\//.test(part) ? (
-        <a
+      <a
         key={i}
         href={part}
         target="_blank"
         rel="noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className={`underline underline-offset-2 ${
-          isMine ? 'text-white' : 'text-signal-ink'
-        }`}
+        className={`underline underline-offset-2 ${isMine ? 'text-white' : 'text-signal-ink'
+          }`}
       >
         {part}
       </a>
@@ -87,6 +86,7 @@ export default function TaskDrawer({
   onTaskMoved,       // ADD
   onTaskDeleted,
   fullPage = false,
+  embedded = false,
 }: {
   task: Task;
   members: Member[];
@@ -98,6 +98,7 @@ export default function TaskDrawer({
   onTaskMoved?: (taskId: string) => void;       // ADD
   onTaskDeleted?: (taskId: string) => void;     // ADD
   fullPage?: boolean;
+  embedded?: boolean;
 }) {
   const supabase = createClient();
   const [messages, setMessages] = useState<MessageWithReads[]>([]);
@@ -158,7 +159,7 @@ export default function TaskDrawer({
     let readsChannel: ReturnType<typeof supabase.channel>;
 
     const load = async () => {
-      
+
       const { count } = await supabase
         .from('task_participants')
         .select('*', { count: 'exact', head: true })
@@ -359,8 +360,15 @@ export default function TaskDrawer({
   };
 
   return (
-    <div className={fullPage ? 'fixed inset-0 z-50 flex' : 'fixed inset-0 z-50 flex justify-end bg-ink/40'}>
-      <div className={`relative flex h-full flex-col bg-surface ${fullPage ? 'w-full' : 'w-full max-w-lg sm:max-w-xl'}`}>
+    <div className={embedded ? 'flex h-full w-full' : fullPage ? 'fixed inset-0 z-50 flex' : 'fixed inset-0 z-50 flex justify-end bg-ink/40'}>
+      <div
+        className={`relative flex h-full flex-col ${embedded ? 'w-full' : fullPage ? 'w-full' : 'w-full max-w-lg sm:max-w-xl'}`}
+        style={{
+          backgroundColor: '#f4f1ec',
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill='%23e0d3bd' fill-opacity='0.28'%3E%3Ccircle cx='8' cy='8' r='1.5'/%3E%3Ccircle cx='28' cy='18' r='1.5'/%3E%3Ccircle cx='18' cy='32' r='1.5'/%3E%3C/g%3E%3C/svg%3E\")",
+        }}
+      >
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b border-line bg-surface px-4 py-3">
           <div className="min-w-0">
@@ -370,15 +378,17 @@ export default function TaskDrawer({
             )}
 
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <select
-                value={task.status}
-                onChange={(e) => onStatusChange(e.target.value as Task['status'])}
-                className="rounded-md border border-line bg-ground px-2 py-1 text-xs text-ink-2 outline-none focus:border-signal"
-              >
-                <option value="todo">To do</option>
-                <option value="in_progress">In progress</option>
-                <option value="done">Done</option>
-              </select>
+              {!task.is_channel_chat && (
+                <select
+                  value={task.status}
+                  onChange={(e) => onStatusChange(e.target.value as Task['status'])}
+                  className="rounded-md border border-line bg-ground px-2 py-1 text-xs text-ink-2 outline-none focus:border-signal"
+                >
+                  <option value="todo">To do</option>
+                  <option value="in_progress">In progress</option>
+                  <option value="done">Done</option>
+                </select>
+              )}
               {task.due_date && (
                 <span className="text-xs text-ink-3">
                   Due {new Date(task.due_date).toLocaleDateString()}
@@ -462,14 +472,15 @@ export default function TaskDrawer({
             >
               <ImageIcon size={18} />
             </button>
-
-            <button
-              onClick={onClose}
-              aria-label={fullPage ? 'Back' : 'Close'}
-              className="rounded-md p-1.5 text-ink-3 transition-colors hover:bg-chip hover:text-ink"
-            >
-              {fullPage ? <ArrowLeft size={20} /> : <X size={20} />}
-            </button>
+            {!embedded && (
+              <button
+                onClick={onClose}
+                aria-label={fullPage ? 'Back' : 'Close'}
+                className="rounded-md p-1.5 text-ink-3 transition-colors hover:bg-chip hover:text-ink"
+              >
+                {fullPage ? <ArrowLeft size={20} /> : <X size={20} />}
+              </button>
+            )}
           </div>
         </div>
 
@@ -477,7 +488,7 @@ export default function TaskDrawer({
             Messages render newest-first in the DOM; the reverse makes them appear
             oldest-top, newest-bottom, and the browser opens already scrolled to the
             latest message. */}
-        <div className="flex flex-1 flex-col-reverse space-y-2.5 space-y-reverse overflow-y-auto overflow-x-hidden bg-[#f4f1ec] px-3 py-4">
+        <div className="flex flex-1 flex-col-reverse space-y-2.5 space-y-reverse overflow-y-auto overflow-x-hidden px-3 py-4">
           {loading ? (
             <p className="text-center text-sm text-ink-3">Loading messages…</p>
           ) : messages.length === 0 ? (
@@ -549,7 +560,7 @@ export default function TaskDrawer({
         {/* Composer */}
         <form
           onSubmit={handleSend}
-          className="flex items-end gap-2 border-t border-line bg-surface px-3 py-2.5"
+          className="mx-auto flex w-full max-w-3xl items-center gap-2 bg-transparent px-4 py-3"
         >
           <input
             type="file"
@@ -577,7 +588,7 @@ export default function TaskDrawer({
             placeholder={uploadingFile ? 'Uploading…' : 'Type a message'}
             disabled={uploadingFile}
             rows={1}
-            className="max-h-32 flex-1 resize-none rounded-2xl border border-line bg-ground px-4 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-4 focus:border-signal focus:ring-2 focus:ring-signal/25"
+            className="max-h-32 flex-1 resize-none rounded-2xl border border-line bg-surface px-4 py-4 text-sm text-ink shadow-sm outline-none transition-colors placeholder:text-ink-4 focus:border-signal focus:ring-2 focus:ring-signal/25"
           />
           <button
             type="submit"
@@ -627,9 +638,8 @@ function MessageRow({
   return (
     <div
       {...handlers}
-      className={`relative flex items-end gap-2 ${
-        isMine ? 'justify-end' : 'justify-start'
-      }`}
+      className={`group relative flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'
+        }`}
     >
       {/* Reply icon revealed as the bubble slides right */}
       <div
@@ -665,9 +675,8 @@ function MessageRow({
           transform: `translateX(${offset}px)`,
           transition: offset === 0 ? 'transform 0.18s ease-out' : 'none',
         }}
-        className={`max-w-[76%] rounded-[10px] border px-3 py-2 ${
-          isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
-        }`}
+        className={`max-w-[min(76%,460px)] rounded-[10px] border px-3 py-2 ${isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
+          }`}
       >
         {!isMine && (
           <p className="rule-label mb-0.5 text-signal-ink">{senderLabel}</p>
@@ -697,9 +706,8 @@ function MessageRow({
         <div className="mt-1 flex items-center justify-end gap-1.5">
           <button
             onClick={onReply}
-            className={`mr-auto text-[10px] transition-colors ${
-              isMine ? 'text-[#9fb4cb] hover:text-white' : 'text-ink-4 hover:text-ink-2'
-            }`}
+            className={`mr-auto text-[10px] opacity-0 transition-opacity group-hover:opacity-100 ${isMine ? 'text-[#9fb4cb] hover:text-white' : 'text-ink-4 hover:text-ink-2'
+              }`}
           >
             <CornerUpLeft size={11} className="inline" /> reply
           </button>
