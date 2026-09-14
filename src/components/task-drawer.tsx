@@ -380,15 +380,21 @@ export default function TaskDrawer({
   return (
     <div className={embedded ? 'flex h-full w-full' : fullPage ? 'fixed inset-0 z-50 flex' : 'fixed inset-0 z-50 flex justify-end bg-ink/40'}>
       <div
-        className={`relative flex h-full flex-col ${embedded ? 'w-full' : fullPage ? 'w-full' : 'w-full max-w-lg sm:max-w-xl'}`}
-        style={{
-          backgroundColor: '#f4f1ec',
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill='%23e0d3bd' fill-opacity='0.28'%3E%3Ccircle cx='8' cy='8' r='1.5'/%3E%3Ccircle cx='28' cy='18' r='1.5'/%3E%3Ccircle cx='18' cy='32' r='1.5'/%3E%3C/g%3E%3C/svg%3E\")",
-        }}
+        className={`relative flex h-full flex-col overflow-hidden bg-[#faf6f0] ${embedded ? 'w-full' : fullPage ? 'w-full' : 'w-full max-w-lg sm:max-w-xl'}`}
       >
+        {/* Custom SEVAK background wallpaper with reduced opacity */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0 bg-repeat opacity-[0.14]"
+          style={{
+            backgroundImage: "url('/chat-bg.webp')",
+            backgroundSize: '390px auto',
+            backgroundPosition: 'center top',
+          }}
+          aria-hidden="true"
+        />
+
         {/* Header */}
-        <div className="flex items-start justify-between gap-2.5 border-b border-line bg-surface px-3 py-2.5 sm:px-4 sm:py-3">
+        <div className="relative z-10 flex items-start justify-between gap-2.5 border-b border-line bg-surface px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex min-w-0 flex-1 items-start gap-1.5 sm:gap-2">
             {fullPage && (
               <button
@@ -523,7 +529,7 @@ export default function TaskDrawer({
             Messages render newest-first in the DOM; the reverse makes them appear
             oldest-top, newest-bottom, and the browser opens already scrolled to the
             latest message. */}
-        <div className="flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden">
+        <div className="relative z-10 flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden">
           <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col-reverse space-y-2.5 space-y-reverse px-3.5 py-4 sm:px-6">
           {loading ? (
             <div className="w-full space-y-3 py-4 animate-pulse">
@@ -591,7 +597,7 @@ export default function TaskDrawer({
 
         {/* Reply preview */}
         {replyTo && (
-          <div className="flex items-center justify-between gap-3 border-t border-line bg-ground px-3 py-2">
+          <div className="relative z-10 flex items-center justify-between gap-3 border-t border-line bg-ground px-3 py-2">
             <div className="min-w-0 border-l-[3px] border-l-signal pl-2">
               <p className="text-xs font-medium text-signal-ink">
                 Replying to{' '}
@@ -614,7 +620,7 @@ export default function TaskDrawer({
         {/* Composer */}
         <form
           onSubmit={handleSend}
-          className="mx-auto flex w-full max-w-3xl items-center gap-2 bg-transparent px-4 py-3"
+          className="relative z-10 mx-auto flex w-full max-w-3xl items-center gap-2 bg-transparent px-4 py-3"
         >
           <input
             type="file"

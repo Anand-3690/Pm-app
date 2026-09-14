@@ -84,12 +84,21 @@ export default function ChatPane({
 
   if (!taskId) {
     return (
-      <div className="flex h-full flex-col items-center justify-center bg-[#f4f1ea] px-8 text-center">
-        <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface text-ink-4 shadow-sm">
+      <div className="relative flex h-full flex-col items-center justify-center overflow-hidden bg-[#faf6f0] px-8 text-center">
+        <div
+          className="pointer-events-none absolute inset-0 z-0 bg-repeat opacity-[0.09]"
+          style={{
+            backgroundImage: "url('/chat-bg.webp')",
+            backgroundSize: '390px auto',
+            backgroundPosition: 'center top',
+          }}
+          aria-hidden="true"
+        />
+        <div className="relative z-10 mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface text-ink-4 shadow-sm">
           <MessageCircle size={28} />
         </div>
-        <p className="font-display text-lg font-bold text-ink">Select a chat</p>
-        <p className="mt-1 max-w-xs text-sm text-ink-3">
+        <p className="relative z-10 font-display text-lg font-bold text-ink">Select a chat</p>
+        <p className="relative z-10 mt-1 max-w-xs text-sm text-ink-3">
           Choose a conversation from the list to start messaging.
         </p>
       </div>

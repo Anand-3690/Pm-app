@@ -1,11 +1,11 @@
 {
-  "name": "PM App - Project Management",
-  "short_name": "PM App",
-  "description": "Manage projects, tasks, and team chat",
+  "name": "SEVAK — Projects & Site Chat",
+  "short_name": "SEVAK",
+  "description": "Track site work, share drawings, and keep every task in one thread.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#7c3aed",
+  "background_color": "#faf6f0",
+  "theme_color": "#102a45",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "/icons/icon-72.png", "sizes": "72x72", "type": "image/png" },
