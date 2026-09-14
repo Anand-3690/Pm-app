@@ -111,6 +111,7 @@ export default function TaskDrawer({
   const [menuOpen, setMenuOpen] = useState(false);
   const [moving, setMoving] = useState(false);
   const canManage = isAdmin || task.created_by === currentUserId;
+  const initialIdsRef = useRef<Set<string> | null>(null);
 
   const moveToChannel = async (channelId: string) => {
     setMoving(true);
@@ -175,6 +176,9 @@ export default function TaskDrawer({
         .order('created_at', { ascending: true });
 
       setMessages((data as any) || []);
+      if (initialIdsRef.current === null) {
+        initialIdsRef.current = new Set(((data as any) || []).map((m: any) => m.id));
+      }
       setLoading(false);
 
       const unreadFromOthers = (data || []).filter(
@@ -495,6 +499,7 @@ export default function TaskDrawer({
             <p className="text-center text-sm text-ink-3">No messages yet. Say hello.</p>
           ) : (
             [...messages].reverse().map((msg, i, arr) => {
+              const isNew = initialIdsRef.current !== null && !initialIdsRef.current.has(msg.id);
               const isMine = msg.sender_id === currentUserId;
               const sender = msg.sender || profileById(msg.sender_id);
               const repliedMsg = msg.reply_to_id
@@ -514,6 +519,7 @@ export default function TaskDrawer({
                   <MessageRow
                     msg={msg}
                     isMine={isMine}
+                    isNew={isNew}
                     senderLabel={senderLabel}
                     repliedMsg={repliedMsg as MessageWithReads | null}
                     currentUserId={currentUserId}
@@ -617,6 +623,7 @@ export default function TaskDrawer({
 function MessageRow({
   msg,
   isMine,
+  isNew,
   senderLabel,
   repliedMsg,
   currentUserId,
@@ -626,6 +633,7 @@ function MessageRow({
 }: {
   msg: MessageWithReads;
   isMine: boolean;
+  isNew: boolean;
   senderLabel: string;
   repliedMsg: MessageWithReads | null;
   currentUserId: string;
@@ -675,7 +683,7 @@ function MessageRow({
           transform: `translateX(${offset}px)`,
           transition: offset === 0 ? 'transform 0.18s ease-out' : 'none',
         }}
-        className={`max-w-[min(76%,460px)] rounded-[10px] border px-3 py-2 ${isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
+        className={`max-w-[min(76%,460px)] rounded-[10px] border px-3 py-2 ${isNew ? 'animate-bubble-in' : ''} ${isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
           }`}
       >
         {!isMine && (
@@ -717,6 +725,6 @@ function MessageRow({
           {isMine && renderTicks(msg)}
         </div>
       </div>
-    </div>
+    </div >
   );
 }

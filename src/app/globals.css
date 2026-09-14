@@ -6,17 +6,25 @@
 
 @theme {
   /* Surfaces — hpys warm creams */
-  --color-ground: #faf6f0;      /* page background */
-  --color-surface: #ffffff;     /* cards stay white for contrast on cream */
-  --color-line: #eedcc5;        /* hpys warm hairline (kept, per your call) */
+  --color-ground: #faf6f0;
+  /* page background */
+  --color-surface: #ffffff;
+  /* cards stay white for contrast on cream */
+  --color-line: #eedcc5;
+  /* hpys warm hairline (kept, per your call) */
   --color-line-soft: #f2e7d6;
-  --color-chip: #fdf6ec;        /* input fill / chip ground */
+  --color-chip: #fdf6ec;
+  /* input fill / chip ground */
 
   /* Text — hpys navy family */
-  --color-ink: #1e466b;         /* headings + primary text (hpys navy) */
-  --color-ink-2: #3f5f7f;       /* secondary text */
-  --color-ink-3: #6b7f92;       /* muted / meta */
-  --color-ink-4: #9aa8b5;       /* faint / placeholder */
+  --color-ink: #1e466b;
+  /* headings + primary text (hpys navy) */
+  --color-ink-2: #3f5f7f;
+  /* secondary text */
+  --color-ink-3: #6b7f92;
+  /* muted / meta */
+  --color-ink-4: #9aa8b5;
+  /* faint / placeholder */
 
   /* Accent — UNCHANGED: your signal orange + solid button */
   --color-signal: #ff6b2c;
@@ -149,13 +157,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-ground text-ink;
     font-family: var(--font-sans);
   }
+
   html {
     font-family: var(--font-sans);
   }
+
   h1,
   h2,
   h3 {
@@ -182,4 +193,20 @@
   font-size: 0.8125rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-bubble-in {
+  animation: bubble-in 0.18s ease-out;
 }
