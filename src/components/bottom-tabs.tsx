@@ -24,7 +24,7 @@ export default function BottomTabs() {
             <Link
               key={t.href}
               href={t.href}
-              className="flex flex-1 flex-col items-center gap-0.5 py-2"
+              className="touch-manipulation flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 transition-colors active:bg-chip/60"
             >
               <Icon size={22} className={active ? 'text-signal' : 'text-ink-4'} />
               <span className={`text-[11px] ${active ? 'font-medium text-signal' : 'text-ink-4'}`}>

@@ -40,7 +40,7 @@ export default function ChatsTwoPane({
   return (
     <div className="lg:flex lg:h-[calc(100vh-3.5rem)] lg:overflow-hidden">
       {/* Left: list. Full width on mobile, fixed column on desktop. */}
-      <div className="lg:w-[640px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-line">
+      <div className="lg:w-[380px] xl:w-[420px] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-line">
         <ChatList rows={rows} currentUserId={currentUserId} onOpen={handleOpen} selectedId={selectedId} />
       </div>
 

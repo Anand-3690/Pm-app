@@ -388,7 +388,7 @@ export default function TaskDrawer({
                 <select
                   value={task.status}
                   onChange={(e) => onStatusChange(e.target.value as Task['status'])}
-                  className="rounded-md border border-line bg-ground px-2 py-1 text-xs text-ink-2 outline-none focus:border-signal"
+                  className="touch-manipulation rounded-md border border-line bg-ground px-2.5 py-1.5 text-xs font-semibold text-ink-2 outline-none transition-colors focus:border-signal"
                 >
                   <option value="todo">To do</option>
                   <option value="in_progress">In progress</option>
@@ -474,17 +474,17 @@ export default function TaskDrawer({
               onClick={() => setShowMedia(true)}
               title="Shared media"
               aria-label="Shared media"
-              className="rounded-md p-1.5 text-signal-ink transition-colors hover:bg-signal-tint"
+              className="touch-manipulation rounded-lg p-2 text-signal-ink transition-colors hover:bg-signal-tint"
             >
-              <ImageIcon size={18} />
+              <ImageIcon size={19} />
             </button>
             {!embedded && (
               <button
                 onClick={onClose}
                 aria-label={fullPage ? 'Back' : 'Close'}
-                className="rounded-md p-1.5 text-ink-3 transition-colors hover:bg-chip hover:text-ink"
+                className="touch-manipulation rounded-lg p-2 text-ink-3 transition-colors hover:bg-chip hover:text-ink"
               >
-                {fullPage ? <ArrowLeft size={20} /> : <X size={20} />}
+                {fullPage ? <ArrowLeft size={21} /> : <X size={21} />}
               </button>
             )}
           </div>
@@ -494,7 +494,8 @@ export default function TaskDrawer({
             Messages render newest-first in the DOM; the reverse makes them appear
             oldest-top, newest-bottom, and the browser opens already scrolled to the
             latest message. */}
-        <div className="flex flex-1 flex-col-reverse space-y-2.5 space-y-reverse overflow-y-auto overflow-x-hidden px-3 py-4">
+        <div className="flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden">
+          <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col-reverse space-y-2.5 space-y-reverse px-3.5 py-4 sm:px-6">
           {loading ? (
             <p className="text-center text-sm text-ink-3">Loading messages…</p>
           ) : messages.length === 0 ? (
@@ -525,7 +526,10 @@ export default function TaskDrawer({
                     senderLabel={senderLabel}
                     repliedMsg={repliedMsg as MessageWithReads | null}
                     currentUserId={currentUserId}
-                    onReply={() => setReplyTo(msg)}
+                    onReply={() => {
+                      setReplyTo(msg);
+                      textareaRef.current?.focus();
+                    }}
                     renderAttachment={renderAttachment}
                     renderTicks={renderTicks}
                   />
@@ -533,14 +537,17 @@ export default function TaskDrawer({
                   {/* Divider renders AFTER the bubble in source; in a reversed column
                       that places it visually ABOVE the day's first message. */}
                   {showDayDivider && (
-                    <div className="flex justify-center py-2">
-                      <span className="stamp bg-chip text-ink-2">{dayLabel(msg.created_at)}</span>
+                    <div className="flex items-center justify-center py-2">
+                      <span className="rounded-full border border-line bg-surface/80 px-2.5 py-0.5 text-[11px] font-medium text-ink-3 backdrop-blur-sm">
+                        {dayLabel(msg.created_at)}
+                      </span>
                     </div>
                   )}
                 </Fragment>
               );
             })
           )}
+          </div>
         </div>
 
         {/* Reply preview */}
@@ -582,7 +589,7 @@ export default function TaskDrawer({
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingFile}
             aria-label="Attach a file"
-            className="shrink-0 rounded-full p-2 text-ink-2 transition-colors hover:bg-chip disabled:opacity-50"
+            className="touch-manipulation flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-chip disabled:opacity-50 sm:h-9 sm:w-9"
           >
             <Paperclip size={20} />
           </button>
@@ -596,15 +603,15 @@ export default function TaskDrawer({
             placeholder={uploadingFile ? 'Uploading…' : 'Type a message'}
             disabled={uploadingFile}
             rows={1}
-            className="max-h-32 flex-1 resize-none rounded-2xl border border-line bg-surface px-4 py-4 text-sm text-ink shadow-sm outline-none transition-colors placeholder:text-ink-4 focus:border-signal focus:ring-2 focus:ring-signal/25"
+            className="max-h-32 flex-1 resize-none rounded-2xl border border-line bg-surface px-4 py-3 text-[15.5px] text-ink shadow-sm outline-none transition-colors placeholder:text-ink-4 focus:border-signal focus:ring-2 focus:ring-signal/25 sm:py-2.5 sm:text-sm"
           />
           <button
             type="submit"
             disabled={sending || !text.trim()}
             aria-label="Send"
-            className="shrink-0 rounded-full bg-signal p-2.5 text-white transition-colors hover:bg-signal-hover disabled:opacity-40"
+            className="touch-manipulation flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-signal text-white shadow-sm transition-colors hover:bg-signal-hover disabled:opacity-40 sm:h-9 sm:w-9"
           >
-            <Send size={16} />
+            <Send size={17} />
           </button>
         </form>
 
@@ -685,7 +692,7 @@ function MessageRow({
           transform: `translateX(${offset}px)`,
           transition: offset === 0 ? 'transform 0.18s ease-out' : 'none',
         }}
-        className={`max-w-[min(76%,460px)] rounded-[10px] border px-3 py-2 ${isNew ? 'animate-bubble-in' : ''} ${isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
+        className={`max-w-[min(82%,540px)] rounded-[10px] border px-3 py-2 ${isNew ? 'animate-bubble-in' : ''} ${isMine ? 'border-bubble-line bg-bubble' : 'border-line bg-surface'
           }`}
       >
         {!isMine && (
