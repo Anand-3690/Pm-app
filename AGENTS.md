@@ -92,8 +92,11 @@ CI builds **two** images: the app and `pm-app-push-worker`. A broken build fails
 - `block_delete_nonempty_channel` — blocks deleting a channel that still has tasks, BUT allows the delete when the parent project no longer exists (so project-cascade deletion works). Any similar "block delete when non-empty" guard MUST include the cascade carve-out.
 - `sync_new_member_to_channel_chats` — on `project_members` insert, adds the new member to every `is_channel_chat` task in that project (keeps channel-chat participants in sync).
 
-### Migrations are NOT in the repo yet
-Schema was applied directly to prod via `psql` across many sessions and lives only as loose `.sql` files. **Folding these into a versioned `migrations/` folder is the top open task.** If you add schema, put the `.sql` in `migrations/` and note it here.
+### Migrations
+Schema was historically applied directly to prod via `psql`. We have started versioning migrations in `migrations/`:
+- `migrations/000_base_schema.sql` — complete baseline schema dump from production Postgres 17 (tables, functions, triggers, policies).
+- `migrations/001_tasks_replica_identity.sql` — sets `REPLICA IDENTITY FULL` on `tasks` so Supabase Realtime sends previous row values to `worker/index.mjs` on UPDATE events.
+If you add schema, put the `.sql` in `migrations/` and note it here.
 
 ---
 
