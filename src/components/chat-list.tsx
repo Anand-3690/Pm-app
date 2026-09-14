@@ -39,9 +39,21 @@ function chatTime(iso: string | null) {
 function preview(row: ChatRow, currentUserId: string) {
   const mine = row.last_sender_id === currentUserId;
   let text: string;
-  if (row.last_message) text = row.last_message;
-  else if (row.last_has_attachment) text = 'Attachment';
-  else text = 'No messages yet';
+  if (row.last_has_attachment) {
+    const filename = row.last_message || '';
+    const isImage = /\.(jpe?g|png|webp|gif|svg)$/i.test(filename);
+    if (isImage) {
+      text = '📷 Photo';
+    } else if (filename) {
+      text = `📄 ${filename}`;
+    } else {
+      text = 'Attachment';
+    }
+  } else if (row.last_message) {
+    text = row.last_message;
+  } else {
+    text = 'No messages yet';
+  }
   return mine ? `You: ${text}` : text;
 }
 
@@ -97,7 +109,15 @@ export default function ChatList({
   const supabase = createClient();
   const [rows, setRows] = useState<ChatRow[]>(initial);
   const [q, setQ] = useState('');
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = sessionStorage.getItem('sevak_open_projects');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
   useEffect(() => { setRows(initial); }, [initial]);
 
@@ -198,8 +218,28 @@ export default function ChatList({
     : null;
   const isOpen = (pid: string) =>
     searching ? true : (expanded[pid] ?? pid === selectedProjectId);
-  const toggleGroup = (pid: string) =>
-    setExpanded((prev) => ({ ...prev, [pid]: !isOpen(pid) }));
+  const toggleGroup = (pid: string) => {
+    setExpanded((prev) => {
+      const next = { ...prev, [pid]: !isOpen(pid) };
+      try {
+        sessionStorage.setItem('sevak_open_projects', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const handleOpenChat = (row: ChatRow) => {
+    // Keep this project open in session storage so navigating back preserves it
+    setExpanded((prev) => {
+      const next = { ...prev, [row.project_id]: true };
+      try {
+        sessionStorage.setItem('sevak_open_projects', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    if (onOpen) onOpen(row.task_id, 'chat');
+    else router.push(`/dashboard/chats/${row.task_id}`);
+  };
 
   // ── Row renderers ──
   const ChatRowFull = (row: ChatRow) => {
@@ -208,7 +248,7 @@ export default function ChatList({
     return (
       <div
         key={row.task_id}
-        onClick={() => onOpen ? onOpen(row.task_id, 'chat') : router.push(`/dashboard/chats/${row.task_id}`)}
+        onClick={() => handleOpenChat(row)}
         className={`relative mx-1.5 my-1 flex cursor-pointer gap-3 rounded-xl px-3 py-3 pl-3.5 transition-colors ${
           isSelected
             ? 'bg-[#fff6ec]'
@@ -261,7 +301,7 @@ export default function ChatList({
     return (
       <div
         key={row.task_id}
-        onClick={() => onOpen ? onOpen(row.task_id, 'chat') : router.push(`/dashboard/chats/${row.task_id}`)}
+        onClick={() => handleOpenChat(row)}
         className={`group/row flex cursor-pointer items-center gap-3 border-t border-[#f4ece0] px-3.5 py-3 transition-colors sm:gap-2.5 sm:px-3 sm:py-2.5 ${selectedId === row.task_id ? 'bg-[#fff6ec]' : 'hover:bg-chip/40'}`}
       >
         <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px] text-[13px] font-bold text-white sm:h-[34px] sm:w-[34px] sm:rounded-[10px] sm:text-[12px]"

@@ -67,7 +67,7 @@ export default function TaskParticipants({
             </div>
           ))}
         </div>
-        {participants.length} in chat
+        {loading ? '… in chat' : `${participants.length} in chat`}
       </button>
 
       {open && (

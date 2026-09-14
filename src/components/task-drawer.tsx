@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   X, Send, Paperclip, CornerUpLeft, Check, CheckCheck, FileText, Image as ImageIcon, MoreVertical, Trash2,
-  ArrowLeft
+  ArrowLeft, User
 } from 'lucide-react';
 import { avatarColor } from '@/lib/avatar-color';
 import { useSignedUrls } from '@/lib/use-signed-urls';
@@ -23,6 +23,9 @@ type Member = {
 
 type MessageWithReads = Message & { reads?: { user_id: string }[] };
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 /** Local-date key, so messages near midnight group under the correct day. */
 const dayKey = (iso: string) => {
   const d = new Date(iso);
@@ -39,13 +42,21 @@ const dayLabel = (iso: string) => {
   if (dayKey(iso) === dayKey(yesterday.toISOString())) return 'Yesterday';
 
   const daysAgo = (today.getTime() - d.getTime()) / 86400000;
-  if (daysAgo < 7) return d.toLocaleDateString(undefined, { weekday: 'long' });
+  if (daysAgo < 7) return DAYS[d.getDay()];
 
-  return d.toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric',
-  });
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}${d.getFullYear() === today.getFullYear() ? '' : ` ${d.getFullYear()}`}`;
+};
+
+const formatDueDate = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}${d.getFullYear() === new Date().getFullYear() ? '' : ` ${d.getFullYear()}`}`;
+};
+
+const formatReplyPreview = (msg: MessageWithReads | Message | null) => {
+  if (!msg) return '';
+  if (msg.attachment_type === 'image') return '📷 Photo';
+  if (msg.attachment_type === 'file') return `📄 ${msg.content || 'Document'}`;
+  return msg.content || 'Message';
 };
 
 const formatTime = (iso: string) =>
@@ -314,7 +325,7 @@ export default function TaskDrawer({
 
     if (msg.attachment_type === 'image') {
       if (pending) {
-        return <div className="mb-1 h-40 w-40 animate-pulse rounded-lg bg-line" />;
+        return <div className="mb-1 h-44 w-56 max-w-full animate-pulse rounded-lg bg-line/60" />;
       }
       if (!href) {
         return (
@@ -324,11 +335,12 @@ export default function TaskDrawer({
         );
       }
       return (
-        <a href={href} target="_blank" rel="noreferrer">
+        <a href={href} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg">
           <img
             src={href}
             alt={msg.content || 'attachment'}
-            className="mb-1 max-h-64 rounded-lg object-cover"
+            loading="lazy"
+            className="mb-1 max-h-72 w-auto max-w-full rounded-lg object-contain shadow-sm transition-opacity duration-200"
           />
         </a>
       );
@@ -376,43 +388,60 @@ export default function TaskDrawer({
         }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-line bg-surface px-4 py-3">
-          <div className="min-w-0">
-            <h2 className="truncate font-display text-lg font-bold text-ink">{task.title}</h2>
-            {task.description && (
-              <p className="mt-0.5 line-clamp-2 text-xs text-ink-3">{task.description}</p>
+        <div className="flex items-start justify-between gap-2.5 border-b border-line bg-surface px-3 py-2.5 sm:px-4 sm:py-3">
+          <div className="flex min-w-0 flex-1 items-start gap-1.5 sm:gap-2">
+            {fullPage && (
+              <button
+                onClick={onClose}
+                aria-label="Back to chats"
+                className="touch-manipulation -ml-1 mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-chip active:bg-chip/80"
+              >
+                <ArrowLeft size={21} />
+              </button>
             )}
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate font-display text-lg font-bold leading-tight text-ink">
+                {task.is_channel_chat && <span className="mr-0.5 text-ink-4">#</span>}
+                {task.title}
+              </h2>
+              {task.description && (
+                <p className="mt-0.5 line-clamp-2 text-xs text-ink-3">{task.description}</p>
+              )}
 
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {!task.is_channel_chat && (
-                <select
-                  value={task.status}
-                  onChange={(e) => onStatusChange(e.target.value as Task['status'])}
-                  className="touch-manipulation rounded-md border border-line bg-ground px-2.5 py-1.5 text-xs font-semibold text-ink-2 outline-none transition-colors focus:border-signal"
-                >
-                  <option value="todo">To do</option>
-                  <option value="in_progress">In progress</option>
-                  <option value="done">Done</option>
-                </select>
-              )}
-              {task.due_date && (
-                <span className="text-xs text-ink-3">
-                  Due {new Date(task.due_date).toLocaleDateString()}
-                </span>
-              )}
-              {task.assignee && (
-                <span className="text-xs text-ink-3">
-                  → {task.assignee.full_name || task.assignee.email}
-                </span>
-              )}
-            </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                {!task.is_channel_chat && (
+                  <select
+                    value={task.status}
+                    onChange={(e) => onStatusChange(e.target.value as Task['status'])}
+                    className="touch-manipulation rounded-md border border-line bg-ground px-2 py-1 text-xs font-semibold text-ink-2 outline-none transition-colors focus:border-signal"
+                  >
+                    <option value="todo">To do</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="done">Done</option>
+                  </select>
+                )}
+                {task.assignee && (
+                  <span className="inline-flex items-center gap-1 rounded-md border border-line bg-ground px-2 py-1 text-xs text-ink-2">
+                    <User size={12} className="shrink-0 text-ink-4" />
+                    <span className="max-w-[140px] truncate font-medium">
+                      {task.assignee.full_name || task.assignee.email}
+                    </span>
+                  </span>
+                )}
+                {task.due_date && (
+                  <span className="text-xs font-medium text-ink-3">
+                    Due {formatDueDate(task.due_date)}
+                  </span>
+                )}
+              </div>
 
-            <div className="mt-2">
-              <TaskParticipants
-                taskId={task.id}
-                members={members}
-                canManage={isAdmin || task.created_by === currentUserId}
-              />
+              <div className="mt-1.5">
+                <TaskParticipants
+                  taskId={task.id}
+                  members={members}
+                  canManage={isAdmin || task.created_by === currentUserId}
+                />
+              </div>
             </div>
           </div>
 
@@ -478,13 +507,13 @@ export default function TaskDrawer({
             >
               <ImageIcon size={19} />
             </button>
-            {!embedded && (
+            {!embedded && !fullPage && (
               <button
                 onClick={onClose}
-                aria-label={fullPage ? 'Back' : 'Close'}
+                aria-label="Close"
                 className="touch-manipulation rounded-lg p-2 text-ink-3 transition-colors hover:bg-chip hover:text-ink"
               >
-                {fullPage ? <ArrowLeft size={21} /> : <X size={21} />}
+                <X size={21} />
               </button>
             )}
           </div>
@@ -497,7 +526,17 @@ export default function TaskDrawer({
         <div className="flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden">
           <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col-reverse space-y-2.5 space-y-reverse px-3.5 py-4 sm:px-6">
           {loading ? (
-            <p className="text-center text-sm text-ink-3">Loading messages…</p>
+            <div className="w-full space-y-3 py-4 animate-pulse">
+              <div className="flex justify-start">
+                <div className="h-10 w-44 rounded-2xl bg-line/60" />
+              </div>
+              <div className="flex justify-end">
+                <div className="h-14 w-56 rounded-2xl bg-line/80" />
+              </div>
+              <div className="flex justify-start">
+                <div className="h-11 w-40 rounded-2xl bg-line/60" />
+              </div>
+            </div>
           ) : messages.length === 0 ? (
             <p className="text-center text-sm text-ink-3">No messages yet. Say hello.</p>
           ) : (
@@ -560,7 +599,7 @@ export default function TaskDrawer({
                   ? 'yourself'
                   : replyTo.sender?.full_name || 'Unknown'}
               </p>
-              <p className="truncate text-xs text-ink-3">{replyTo.content || 'Attachment'}</p>
+              <p className="truncate text-xs text-ink-3">{formatReplyPreview(replyTo)}</p>
             </div>
             <button
               onClick={() => setReplyTo(null)}
@@ -707,7 +746,7 @@ function MessageRow({
                 : repliedMsg.sender?.full_name || 'Unknown'}
             </p>
             <p className="truncate text-[11px] text-ink-2">
-              {repliedMsg.content || 'Attachment'}
+              {formatReplyPreview(repliedMsg)}
             </p>
           </div>
         )}
