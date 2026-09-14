@@ -21,8 +21,8 @@ export type ChatRow = {
   is_channel_chat: boolean;
 };
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function chatTime(iso: string | null) {
   if (!iso) return '';
@@ -67,7 +67,7 @@ function gradientFor(key: string) {
   return GRADIENTS[h % GRADIENTS.length];
 }
 // A small dot color per project, drawn from the same palette (solid, not gradient).
-const DOTS = ['#dd4e1e','#0d8a58','#3a31a0','#b23a20','#245f9e','#a3428a','#b0741c','#227a72'];
+const DOTS = ['#dd4e1e', '#0d8a58', '#3a31a0', '#b23a20', '#245f9e', '#a3428a', '#b0741c', '#227a72'];
 function dotFor(key: string) {
   let h = 0;
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
@@ -200,9 +200,8 @@ export default function ChatList({
       <div
         key={row.task_id}
         onClick={() => router.push(`/dashboard/chats/${row.task_id}`)}
-        className={`relative mx-1.5 my-1 flex cursor-pointer gap-3 rounded-xl px-3 py-3 pl-3.5 transition-colors ${
-          unread ? 'bg-surface shadow-[0_1px_2px_rgba(30,70,107,0.05)] hover:bg-chip/40' : 'hover:bg-chip/50'
-        }`}
+        className={`relative mx-1.5 my-1 flex cursor-pointer gap-3 rounded-xl px-3 py-3 pl-3.5 transition-colors ${unread ? 'bg-surface shadow-[0_1px_2px_rgba(30,70,107,0.05)] hover:bg-chip/40' : 'hover:bg-chip/50'
+          }`}
       >
         {unread && <span className="absolute inset-y-3.5 left-0 w-[3px] rounded-full bg-signal" aria-hidden="true" />}
         <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[14px] text-[16px] font-bold tracking-tight text-white shadow-[0_2px_6px_rgba(30,70,107,0.12)]"
@@ -319,7 +318,6 @@ export default function ChatList({
                   {open ? <ChevronDown size={16} className="shrink-0 text-ink-4" /> : <ChevronRight size={16} className="shrink-0 text-ink-4" />}
                   <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: dotFor(g.projectId) }} aria-hidden="true" />
                   <span className="flex-1 truncate text-[14.5px] font-bold text-ink">{g.projectTitle}</span>
-                  <span className="shrink-0 rounded-full bg-chip px-2 py-0.5 text-[11px] font-semibold text-ink-3">{g.chats.length}</span>
                   {g.unread > 0 && (
                     <span className="ml-0.5 flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-signal px-1.5 text-[10px] font-bold text-white">
                       {g.unread > 99 ? '99+' : g.unread}
