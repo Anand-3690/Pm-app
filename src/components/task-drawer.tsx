@@ -64,7 +64,7 @@ const formatTime = (iso: string) =>
 
 /** Render URLs in message text as clickable links; stopPropagation so a tap
  *  on a link doesn't trigger swipe-to-reply. */
-function linkify(text: string, isMine: boolean) {
+function linkify(text: string) {
   if (!text) return null;
   const parts = text.split(/(https?:\/\/[^\s]+)/g);
   return parts.map((part, i) =>
@@ -75,8 +75,7 @@ function linkify(text: string, isMine: boolean) {
         target="_blank"
         rel="noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className={`underline underline-offset-2 ${isMine ? 'text-white' : 'text-signal-ink'
-          }`}
+        className="font-medium text-signal-ink underline underline-offset-2 transition-colors hover:text-signal"
       >
         {part}
       </a>
@@ -347,7 +346,7 @@ export default function TaskDrawer({
     }
 
     if (msg.attachment_type === 'file') {
-      const shell = isMine ? 'bg-surface/70' : 'bg-chip';
+      const shell = isMine ? 'bg-white/80 border border-[#ffd7ba]/60' : 'bg-chip';
       if (!href) {
         return (
           <div
@@ -745,7 +744,11 @@ function MessageRow({
         )}
 
         {repliedMsg && (
-          <div className="mb-1.5 rounded-md border-l-[3px] border-l-signal bg-ink/5 px-2 py-1">
+          <div
+            className={`mb-1.5 rounded-md border-l-[3px] border-l-signal px-2 py-1 ${
+              isMine ? 'bg-white/75' : 'bg-ink/5'
+            }`}
+          >
             <p className="text-[11px] font-medium text-signal-ink">
               {repliedMsg.sender_id === currentUserId
                 ? 'You'
@@ -760,20 +763,19 @@ function MessageRow({
         {renderAttachment(msg, isMine)}
 
         {!msg.attachment_url && (
-          <p className={`whitespace-pre-wrap break-words text-sm ${isMine ? 'text-white' : 'text-ink'}`}>
-            {linkify(msg.content ?? '', isMine)}
+          <p className="whitespace-pre-wrap break-words text-sm text-ink">
+            {linkify(msg.content ?? '')}
           </p>
         )}
 
         <div className="mt-1 flex items-center justify-end gap-1.5">
           <button
             onClick={onReply}
-            className={`mr-auto text-[10px] opacity-0 transition-opacity group-hover:opacity-100 ${isMine ? 'text-[#9fb4cb] hover:text-white' : 'text-ink-4 hover:text-ink-2'
-              }`}
+            className="mr-auto text-[10px] text-ink-4 opacity-0 transition-opacity group-hover:opacity-100 hover:text-ink-2"
           >
             <CornerUpLeft size={11} className="inline" /> reply
           </button>
-          <span className={`text-[10px] ${isMine ? 'text-[#9fb4cb]' : 'text-ink-4'}`}>
+          <span className="text-[10px] text-ink-4">
             {formatTime(msg.created_at)}
           </span>
           {isMine && renderTicks(msg)}

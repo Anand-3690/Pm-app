@@ -32,9 +32,9 @@
   --color-signal-tint: #ffede2;
   --color-signal-ink: #b8480f;
 
-  /* Chat bubble — your existing warm orange tint, unchanged */
-  --color-bubble: #1e466b;
-  --color-bubble-line: #1e466b;
+  /* Chat bubble — Option 1: Warm Saffron Tint */
+  --color-bubble: #ffeedf;
+  --color-bubble-line: #ffd7ba;
 
   --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
