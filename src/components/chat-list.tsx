@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Search, Pin, ChevronRight, ChevronDown, CheckCheck } from 'lucide-react';
+import { prefetchChat } from './chat-pane';
 
 export type ChatRow = {
   task_id: string;
@@ -219,13 +220,20 @@ export default function ChatList({
   const isOpen = (pid: string) =>
     searching ? true : (expanded[pid] ?? pid === selectedProjectId);
   const toggleGroup = (pid: string) => {
+    const opening = !isOpen(pid);
     setExpanded((prev) => {
-      const next = { ...prev, [pid]: !isOpen(pid) };
+      const next = { ...prev, [pid]: opening };
       try {
         sessionStorage.setItem('sevak_open_projects', JSON.stringify(next));
       } catch {}
       return next;
     });
+
+    if (opening) {
+      // Prefetch the chats in this project in the background
+      const projectChats = rows.filter((r) => r.project_id === pid).slice(0, 8);
+      projectChats.forEach((c) => prefetchChat(c.task_id));
+    }
   };
 
   const handleOpenChat = (row: ChatRow) => {
@@ -249,6 +257,8 @@ export default function ChatList({
       <div
         key={row.task_id}
         onClick={() => handleOpenChat(row)}
+        onPointerEnter={() => prefetchChat(row.task_id)}
+        onTouchStart={() => prefetchChat(row.task_id)}
         className={`relative mx-1.5 my-1 flex cursor-pointer gap-3 rounded-xl px-3 py-3 pl-3.5 transition-colors ${
           isSelected
             ? 'bg-[#fff6ec]'
@@ -279,13 +289,18 @@ export default function ChatList({
           <div className="flex items-center justify-between gap-2">
             <span className={`truncate text-[13px] ${unread ? 'font-medium text-ink-2' : 'text-[#7a6f5f]'}`}>{preview(row, currentUserId)}</span>
             <span className="flex shrink-0 items-center gap-1.5">
-              <button onClick={(e) => togglePin(e, row)} aria-label={row.is_pinned ? 'Unpin' : 'Pin'}
-                className={`touch-manipulation rounded-md p-1.5 -mr-1 transition-colors ${row.is_pinned ? 'text-signal' : 'text-transparent hover:text-ink-4'}`}>
-                <Pin size={13} fill={row.is_pinned ? 'currentColor' : 'none'} />
+              <button
+                onClick={(e) => togglePin(e, row)}
+                aria-label={row.is_pinned ? 'Unpin' : 'Pin'}
+                className={`touch-manipulation rounded-md p-1.5 transition-colors ${
+                  row.is_pinned ? 'text-signal' : 'text-ink-4/50 hover:text-signal'
+                }`}
+              >
+                <Pin size={13} className={row.is_pinned ? 'fill-signal rotate-45' : ''} />
               </button>
               {unread ? (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-signal px-1.5 text-[11px] font-bold text-white shadow-[0_1px_3px_rgba(255,107,44,0.4)]">
-                  {row.unread_count > 99 ? '99+' : row.unread_count}
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-signal px-1 text-[10px] font-bold text-white shadow-[0_1px_4px_rgba(255,107,44,0.35)]">
+                  {row.unread_count}
                 </span>
               ) : row.last_sender_id === currentUserId ? <CheckCheck size={15} className="text-ink-4" /> : null}
             </span>
@@ -302,6 +317,8 @@ export default function ChatList({
       <div
         key={row.task_id}
         onClick={() => handleOpenChat(row)}
+        onPointerEnter={() => prefetchChat(row.task_id)}
+        onTouchStart={() => prefetchChat(row.task_id)}
         className={`group/row flex cursor-pointer items-center gap-3 border-t border-[#f4ece0] px-3.5 py-3 transition-colors sm:gap-2.5 sm:px-3 sm:py-2.5 ${selectedId === row.task_id ? 'bg-[#fff6ec]' : 'hover:bg-chip/40'}`}
       >
         <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px] text-[13px] font-bold text-white sm:h-[34px] sm:w-[34px] sm:rounded-[10px] sm:text-[12px]"

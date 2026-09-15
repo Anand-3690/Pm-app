@@ -71,6 +71,24 @@ export default function ChatsTwoPane({
   };
 
   const selectedChatRow = rows.find((r) => r.task_id === selectedId);
+  const initialOptimisticTask = selectedChatRow
+    ? {
+        id: selectedChatRow.task_id,
+        project_id: selectedChatRow.project_id,
+        channel_id: selectedChatRow.channel_id,
+        title: selectedChatRow.task_title,
+        description: null,
+        status: 'in_progress' as const,
+        priority: 'medium' as const,
+        created_by: currentUserId,
+        is_channel_chat: selectedChatRow.is_channel_chat,
+        assignee_id: null,
+        due_date: null,
+        position: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+    : null;
 
   return (
     <div className="lg:flex lg:h-[calc(100vh-3.5rem)] lg:overflow-hidden">
@@ -89,6 +107,7 @@ export default function ChatsTwoPane({
             taskId={selectedId}
             currentUserId={currentUserId}
             onCleared={clearSelection}
+            initialTask={initialOptimisticTask}
             projectId={selectedChatRow?.project_id}
             fullPageOnMobile
           />

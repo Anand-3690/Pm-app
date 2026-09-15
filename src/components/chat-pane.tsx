@@ -13,7 +13,7 @@ type Member = {
   profiles: { id: string; full_name: string | null; email: string | null; avatar_url: string | null };
 };
 
-type ChatCacheItem = {
+export type ChatCacheItem = {
   task: Task;
   members: Member[];
   channels: { id: string; name: string }[];
@@ -23,32 +23,86 @@ type ChatCacheItem = {
   timestamp: number;
 };
 
-// Module-level caches across chat switches
-const chatContextCache = new Map<string, ChatCacheItem>();
-const projectContextCache = new Map<string, { members: Member[]; channels: { id: string; name: string }[] }>();
-let cachedSuperAdminUserId: string | null = null;
-let cachedIsSuperAdmin: boolean | null = null;
+// Global in-memory cache across chat switches and prefetching
+export const chatContextCache = new Map<string, ChatCacheItem>();
+export const projectContextCache = new Map<string, { members: Member[]; channels: { id: string; name: string }[] }>();
+
+// Prefetch a chat's context in the background so it opens in 0ms when clicked
+export function prefetchChat(taskId: string) {
+  if (typeof window === 'undefined') return;
+  const existing = chatContextCache.get(taskId);
+  if (existing && Date.now() - existing.timestamp < 300000) return;
+
+  fetch(`/api/chat-context?taskId=${taskId}`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      if (data?.task) {
+        chatContextCache.set(taskId, {
+          task: data.task,
+          members: data.members || [],
+          channels: data.channels || [],
+          isAdmin: data.isAdmin,
+          initialMessages: data.initialMessages || [],
+          participantCount: data.participantCount || 0,
+          timestamp: Date.now(),
+        });
+        if (data.task.project_id && !projectContextCache.has(data.task.project_id)) {
+          projectContextCache.set(data.task.project_id, {
+            members: data.members || [],
+            channels: data.channels || [],
+          });
+        }
+      }
+    })
+    .catch(() => {});
+}
 
 export default function ChatPane({
   taskId,
   currentUserId,
   onCleared,
+  initialTask,
   projectId: providedProjectId,
   fullPageOnMobile = false,
 }: {
   taskId: string | null;
   currentUserId: string;
   onCleared: () => void;
+  initialTask?: Task | null;
   projectId?: string;
   fullPageOnMobile?: boolean;
 }) {
   const supabase = createClient();
-  const [task, setTask] = useState<Task | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [channels, setChannels] = useState<{ id: string; name: string }[]>([]);
+  const [task, setTask] = useState<Task | null>(() => {
+    if (!taskId) return null;
+    const cached = chatContextCache.get(taskId);
+    return cached ? cached.task : initialTask || null;
+  });
+  const [members, setMembers] = useState<Member[]>(() => {
+    if (!taskId) return [];
+    const cached = chatContextCache.get(taskId);
+    if (cached) return cached.members;
+    const pId = providedProjectId || initialTask?.project_id;
+    return pId && projectContextCache.has(pId) ? projectContextCache.get(pId)!.members : [];
+  });
+  const [channels, setChannels] = useState<{ id: string; name: string }[]>(() => {
+    if (!taskId) return [];
+    const cached = chatContextCache.get(taskId);
+    if (cached) return cached.channels;
+    const pId = providedProjectId || initialTask?.project_id;
+    return pId && projectContextCache.has(pId) ? projectContextCache.get(pId)!.channels : [];
+  });
   const [isAdmin, setIsAdmin] = useState(false);
-  const [initialMessages, setInitialMessages] = useState<MessageWithReads[]>([]);
-  const [participantCount, setParticipantCount] = useState<number>(0);
+  const [initialMessages, setInitialMessages] = useState<MessageWithReads[]>(() => {
+    if (!taskId) return [];
+    const cached = chatContextCache.get(taskId);
+    return cached ? cached.initialMessages : [];
+  });
+  const [participantCount, setParticipantCount] = useState<number>(() => {
+    if (!taskId) return 0;
+    const cached = chatContextCache.get(taskId);
+    return cached ? cached.participantCount : 0;
+  });
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -69,7 +123,7 @@ export default function ChatPane({
 
     let cancelled = false;
 
-    // Check if this chat was cached within the last 5 minutes
+    // Check if this chat is already cached in memory
     const cached = chatContextCache.get(taskId);
     if (cached && Date.now() - cached.timestamp < 300000) {
       setTask(cached.task);
@@ -82,106 +136,67 @@ export default function ChatPane({
       return;
     }
 
-    const load = async () => {
+    // If initialTask is supplied, show the task header & UI optimistically on frame 1
+    if (initialTask && initialTask.id === taskId) {
+      setTask(initialTask);
+      const pId = providedProjectId || initialTask.project_id;
+      if (pId && projectContextCache.has(pId)) {
+        const pCached = projectContextCache.get(pId)!;
+        setMembers(pCached.members);
+        setChannels(pCached.channels);
+      }
+      setLoading(false);
+    } else {
       setLoading(true);
+    }
 
-      // Concurrent Query 1: Task metadata
-      const taskPromise = supabase
+    // High-speed bundled server API call (internal Docker query in <15ms)
+    const loadFast = async () => {
+      try {
+        const res = await fetch(`/api/chat-context?taskId=${taskId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (cancelled) return;
+          if (data?.task) {
+            setTask(data.task);
+            setMembers(data.members || []);
+            setChannels(data.channels || []);
+            setIsAdmin(data.isAdmin);
+            setInitialMessages(data.initialMessages || []);
+            setParticipantCount(data.participantCount || 0);
+            setLoading(false);
+
+            chatContextCache.set(taskId, {
+              task: data.task,
+              members: data.members || [],
+              channels: data.channels || [],
+              isAdmin: data.isAdmin,
+              initialMessages: data.initialMessages || [],
+              participantCount: data.participantCount || 0,
+              timestamp: Date.now(),
+            });
+
+            if (data.task.project_id) {
+              projectContextCache.set(data.task.project_id, {
+                members: data.members || [],
+                channels: data.channels || [],
+              });
+            }
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Fast chat-context fetch failed, falling back to client queries:', err);
+      }
+
+      // Fallback: direct Supabase client queries
+      const { data: t } = await supabase
         .from('tasks')
         .select('*, assignee:profiles!tasks_assignee_id_fkey(id, full_name, email, avatar_url)')
         .eq('id', taskId)
         .single();
 
-      // Concurrent Query 2: Messages
-      const messagesPromise = supabase
-        .from('messages')
-        .select(
-          '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
-        )
-        .eq('task_id', taskId)
-        .order('created_at', { ascending: true });
-
-      // Concurrent Query 3: Participant count
-      const participantsPromise = supabase
-        .from('task_participants')
-        .select('*', { count: 'exact', head: true })
-        .eq('task_id', taskId);
-
-      // Concurrent Query 4: Super admin status (use cache if already checked for this user)
-      const profilePromise =
-        cachedSuperAdminUserId === currentUserId && cachedIsSuperAdmin !== null
-          ? Promise.resolve({ data: { is_super_admin: cachedIsSuperAdmin }, error: null })
-          : supabase.from('profiles').select('is_super_admin').eq('id', currentUserId).single();
-
-      // If projectId is known beforehand, query members and channels in parallel immediately
-      let pId = providedProjectId;
-      let membersPromise: PromiseLike<any>;
-      let channelsPromise: PromiseLike<any>;
-
-      if (pId && projectContextCache.has(pId)) {
-        const pCached = projectContextCache.get(pId)!;
-        membersPromise = Promise.resolve({ data: pCached.members });
-        channelsPromise = Promise.resolve({ data: pCached.channels });
-      } else if (pId) {
-        membersPromise = supabase
-          .from('project_members')
-          .select('id, role, user_id, profiles(id, full_name, email, avatar_url)')
-          .eq('project_id', pId);
-        channelsPromise = supabase
-          .from('channels')
-          .select('id, name')
-          .eq('project_id', pId)
-          .order('position', { ascending: true });
-      } else {
-        // If unknown, await taskPromise first to obtain project_id
-        const { data: tPre } = await taskPromise;
-        if (cancelled) return;
-        if (!tPre) {
-          setTask(null);
-          setLoading(false);
-          onCleared();
-          return;
-        }
-        pId = tPre.project_id;
-        if (pId && projectContextCache.has(pId)) {
-          const pCached = projectContextCache.get(pId)!;
-          membersPromise = Promise.resolve({ data: pCached.members });
-          channelsPromise = Promise.resolve({ data: pCached.channels });
-        } else if (pId) {
-          membersPromise = supabase
-            .from('project_members')
-            .select('id, role, user_id, profiles(id, full_name, email, avatar_url)')
-            .eq('project_id', pId);
-          channelsPromise = supabase
-            .from('channels')
-            .select('id, name')
-            .eq('project_id', pId)
-            .order('position', { ascending: true });
-        } else {
-          membersPromise = Promise.resolve({ data: [] });
-          channelsPromise = Promise.resolve({ data: [] });
-        }
-      }
-
-      const [
-        taskResult,
-        membersResult,
-        channelsResult,
-        profileResult,
-        messagesResult,
-        participantsResult,
-      ] = await Promise.all([
-        taskPromise,
-        membersPromise,
-        channelsPromise,
-        profilePromise,
-        messagesPromise,
-        participantsPromise,
-      ]);
-
       if (cancelled) return;
-
-      const t = taskResult.data;
       if (!t) {
         setTask(null);
         setLoading(false);
@@ -189,51 +204,69 @@ export default function ChatPane({
         return;
       }
 
-      // Cache super admin status
-      if (profileResult?.data) {
-        cachedSuperAdminUserId = currentUserId;
-        cachedIsSuperAdmin = !!profileResult.data.is_super_admin;
-      }
+      const pId = t.project_id;
+      const [
+        { data: mem },
+        { data: ch },
+        { data: me },
+        { data: msgs },
+        { count: pCount },
+      ] = await Promise.all([
+        supabase
+          .from('project_members')
+          .select('id, role, user_id, profiles(id, full_name, email, avatar_url)')
+          .eq('project_id', pId),
+        supabase
+          .from('channels')
+          .select('id, name')
+          .eq('project_id', pId)
+          .order('position', { ascending: true }),
+        supabase.from('profiles').select('is_super_admin').eq('id', currentUserId).single(),
+        supabase
+          .from('messages')
+          .select('*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)')
+          .eq('task_id', taskId)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('task_participants')
+          .select('*', { count: 'exact', head: true })
+          .eq('task_id', taskId),
+      ]);
 
-      // Cache project members and channels
-      const mem = (membersResult?.data as any) || [];
-      const ch = (channelsResult?.data as any) || [];
-      if (t.project_id) {
-        projectContextCache.set(t.project_id, { members: mem, channels: ch });
-      }
+      if (cancelled) return;
 
-      const myMembership = mem.find((m: any) => m.user_id === currentUserId);
-      const isProjectAdmin = myMembership?.role === 'admin' || !!cachedIsSuperAdmin;
-      const msgs = (messagesResult?.data as any) || [];
-      const pCount = participantsResult?.count ?? 0;
+      const loadedMembers = (mem as any) || [];
+      const loadedChannels = (ch as any) || [];
+      const myMembership = loadedMembers.find((m: any) => m.user_id === currentUserId);
+      const isProjectAdmin = myMembership?.role === 'admin' || !!me?.is_super_admin;
+      const loadedMsgs = (msgs as any) || [];
+      const loadedPCount = pCount ?? 0;
 
-      const loadedTask = t as any;
-      setTask(loadedTask);
-      setMembers(mem);
-      setChannels(ch);
+      setTask(t as any);
+      setMembers(loadedMembers);
+      setChannels(loadedChannels);
       setIsAdmin(isProjectAdmin);
-      setInitialMessages(msgs);
-      setParticipantCount(pCount);
+      setInitialMessages(loadedMsgs);
+      setParticipantCount(loadedPCount);
       setLoading(false);
 
-      // Save to chat context cache
       chatContextCache.set(taskId, {
-        task: loadedTask,
-        members: mem,
-        channels: ch,
+        task: t as any,
+        members: loadedMembers,
+        channels: loadedChannels,
         isAdmin: isProjectAdmin,
-        initialMessages: msgs,
-        participantCount: pCount,
+        initialMessages: loadedMsgs,
+        participantCount: loadedPCount,
         timestamp: Date.now(),
       });
     };
 
-    load();
+    loadFast();
 
     return () => {
       cancelled = true;
     };
-  }, [taskId, currentUserId, providedProjectId]);
+  }, [taskId, currentUserId, initialTask, providedProjectId]);
 
   if (!taskId) {
     return (
@@ -258,13 +291,16 @@ export default function ChatPane({
     );
   }
 
-  if (loading || !task) {
+  // Only show blank spinner if we truly have no task data at all (not even optimistic)
+  if (loading && !task) {
     return (
       <div className="flex h-full items-center justify-center bg-[#f4f1ea]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-signal" />
       </div>
     );
   }
+
+  if (!task) return null;
 
   const clear = () => {
     setTask(null);
@@ -275,7 +311,6 @@ export default function ChatPane({
     setTask((prev) => (prev ? { ...prev, status } : prev));
     if (taskId) {
       await supabase.from('tasks').update({ status }).eq('id', taskId);
-      // Update cache
       const cached = chatContextCache.get(taskId);
       if (cached) {
         cached.task.status = status;

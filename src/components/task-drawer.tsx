@@ -337,7 +337,11 @@ export default function TaskDrawer({
 
     if (msg.attachment_type === 'image') {
       if (pending) {
-        return <div className="mb-1 h-44 w-56 max-w-full animate-pulse rounded-lg bg-line/60" />;
+        return (
+          <div className="mb-1 flex h-44 w-56 max-w-full items-center justify-center rounded-lg bg-black/5 animate-pulse text-ink-4">
+            <ImageIcon size={22} className="opacity-40" />
+          </div>
+        );
       }
       if (!href) {
         return (
@@ -346,16 +350,7 @@ export default function TaskDrawer({
           </div>
         );
       }
-      return (
-        <a href={href} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg">
-          <img
-            src={href}
-            alt={msg.content || 'attachment'}
-            loading="lazy"
-            className="mb-1 max-h-72 w-auto max-w-full rounded-lg object-contain shadow-sm transition-opacity duration-200"
-          />
-        </a>
-      );
+      return <ChatAttachmentImage href={href} alt={msg.content || 'attachment'} />;
     }
 
     if (msg.attachment_type === 'file') {
@@ -795,5 +790,27 @@ function MessageRow({
         </div>
       </div>
     </div >
+  );
+}
+
+function ChatAttachmentImage({ href, alt }: { href: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="relative block overflow-hidden rounded-lg">
+      {!loaded && (
+        <div className="flex h-44 w-56 max-w-full items-center justify-center rounded-lg bg-black/5 animate-pulse text-ink-4">
+          <ImageIcon size={22} className="opacity-40 animate-pulse" />
+        </div>
+      )}
+      <img
+        src={href}
+        alt={alt}
+        loading="eager"
+        onLoad={() => setLoaded(true)}
+        className={`mb-1 max-h-72 w-auto max-w-full rounded-lg object-contain shadow-sm transition-opacity duration-200 ${
+          loaded ? 'block opacity-100' : 'hidden'
+        }`}
+      />
+    </a>
   );
 }
