@@ -72,12 +72,21 @@ export async function GET(request: NextRequest) {
   const myMembership = (members || []).find((m: any) => m.user_id === user.id);
   const isAdmin = myMembership?.role === 'admin' || !!me?.is_super_admin;
 
-  return NextResponse.json({
-    task,
-    members: members || [],
-    channels: channels || [],
-    isAdmin,
-    initialMessages: initialMessages || [],
-    participantCount: participantCount ?? 0,
-  });
+  return NextResponse.json(
+    {
+      task,
+      members: members || [],
+      channels: channels || [],
+      isAdmin,
+      initialMessages: initialMessages || [],
+      participantCount: participantCount ?? 0,
+    },
+    {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    }
+  );
 }

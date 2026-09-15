@@ -14,6 +14,7 @@ import TaskParticipants from './task-participants';
 import type { Task, Message, MessageWithReads } from '@/lib/types';
 import Avatar from './avatar';
 import { compressImage } from '@/lib/image-compression';
+import { invalidateChatCache } from '@/lib/chat-cache';
 
 type Member = {
   id: string;
@@ -176,44 +177,82 @@ export default function TaskDrawer({
     let channel: ReturnType<typeof supabase.channel>;
     let readsChannel: ReturnType<typeof supabase.channel>;
 
-    const load = async () => {
-      const [{ count }, { data }] = await Promise.all([
-        initialParticipantCount !== undefined
-          ? Promise.resolve({ count: initialParticipantCount })
-          : supabase
-              .from('task_participants')
-              .select('*', { count: 'exact', head: true })
-              .eq('task_id', task.id),
-        initialMessages
-          ? Promise.resolve({ data: initialMessages })
-          : supabase
-              .from('messages')
-              .select(
-                '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
-              )
-              .eq('task_id', task.id)
-              .order('created_at', { ascending: true }),
-      ]);
+    const syncMessages = async () => {
+      const { data: latest } = await supabase
+        .from('messages')
+        .select(
+          '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
+        )
+        .eq('task_id', task.id)
+        .order('created_at', { ascending: true });
 
+      if (latest) {
+        setMessages((prev) => {
+          if (prev.length === 0) return latest as any[];
+          const prevMap = new Map(prev.map((m) => [m.id, m]));
+          let hasDiff = prev.length !== latest.length;
+          if (!hasDiff) {
+            for (const m of latest as any[]) {
+              const existing = prevMap.get(m.id);
+              if (!existing || (existing.reads?.length || 0) !== (m.reads?.length || 0)) {
+                hasDiff = true;
+                break;
+              }
+            }
+          }
+          return hasDiff ? (latest as any[]) : prev;
+        });
+
+        if (initialIdsRef.current === null) {
+          initialIdsRef.current = new Set((latest as any[]).map((m: any) => m.id));
+        }
+
+        const unreadFromOthers = (latest as any[]).filter(
+          (m: any) => m.sender_id !== currentUserId
+        );
+        markRead(unreadFromOthers.map((m: any) => m.id));
+      }
+    };
+
+    const load = async () => {
       if (initialParticipantCount === undefined) {
+        const { count } = await supabase
+          .from('task_participants')
+          .select('*', { count: 'exact', head: true })
+          .eq('task_id', task.id);
         setParticipantCount(count ?? 0);
       }
-      if (!initialMessages) {
-        setMessages((data as any) || []);
+
+      if (initialMessages && initialMessages.length > 0) {
+        setMessages(initialMessages);
         if (initialIdsRef.current === null) {
-          initialIdsRef.current = new Set(((data as any) || []).map((m: any) => m.id));
+          initialIdsRef.current = new Set(initialMessages.map((m) => m.id));
         }
         setLoading(false);
       }
 
-      const activeList = initialMessages || (data as any) || [];
-      const unreadFromOthers = activeList.filter(
-        (m: any) => m.sender_id !== currentUserId
-      );
-      markRead(unreadFromOthers.map((m: any) => m.id));
+      // Always reconcile with fresh database records in the background
+      await syncMessages();
+      setLoading(false);
     };
 
     load();
+
+    const handleReopen = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        syncMessages();
+        if (channel && (channel.state === 'closed' || channel.state === 'errored')) {
+          channel.subscribe();
+        }
+        if (readsChannel && (readsChannel.state === 'closed' || readsChannel.state === 'errored')) {
+          readsChannel.subscribe();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleReopen);
+    window.addEventListener('focus', handleReopen);
+    window.addEventListener('online', handleReopen);
 
     channel = supabase
       .channel(`task-messages-${task.id}`)
@@ -234,6 +273,7 @@ export default function TaskDrawer({
               if (prev.some((m) => m.id === fullMessage.id)) return prev;
               return [...prev, fullMessage as any];
             });
+            invalidateChatCache(task.id);
             if ((fullMessage as any).sender_id !== currentUserId) {
               markRead([(fullMessage as any).id]);
             }
@@ -261,6 +301,9 @@ export default function TaskDrawer({
       .subscribe();
 
     return () => {
+      document.removeEventListener('visibilitychange', handleReopen);
+      window.removeEventListener('focus', handleReopen);
+      window.removeEventListener('online', handleReopen);
       supabase.removeChannel(channel);
       supabase.removeChannel(readsChannel);
     };
@@ -283,6 +326,7 @@ export default function TaskDrawer({
       setText('');
       if (textareaRef.current) textareaRef.current.style.height = 'auto';
       setReplyTo(null);
+      invalidateChatCache(task.id);
     }
     setSending(false);
   };
@@ -322,6 +366,7 @@ export default function TaskDrawer({
 
     setReplyTo(null);
     setUploadingFile(false);
+    invalidateChatCache(task.id);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 

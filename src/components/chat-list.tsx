@@ -156,7 +156,29 @@ export default function ChatList({
         if ((payload.new as any).user_id === currentUserId) refreshList();
       })
       .subscribe();
-    return () => { supabase.removeChannel(msgChannel); supabase.removeChannel(readsChannel); };
+    const handleReopen = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refreshList();
+        if (msgChannel.state === 'closed' || msgChannel.state === 'errored') {
+          msgChannel.subscribe();
+        }
+        if (readsChannel.state === 'closed' || readsChannel.state === 'errored') {
+          readsChannel.subscribe();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleReopen);
+    window.addEventListener('focus', handleReopen);
+    window.addEventListener('online', handleReopen);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleReopen);
+      window.removeEventListener('focus', handleReopen);
+      window.removeEventListener('online', handleReopen);
+      supabase.removeChannel(msgChannel);
+      supabase.removeChannel(readsChannel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
 

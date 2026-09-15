@@ -6,32 +6,23 @@ import { MessageCircle } from 'lucide-react';
 import TaskDrawer from './task-drawer';
 import type { Task, MessageWithReads } from '@/lib/types';
 
-type Member = {
-  id: string;
-  role: string;
-  user_id: string;
-  profiles: { id: string; full_name: string | null; email: string | null; avatar_url: string | null };
-};
+import {
+  type Member,
+  type ChatCacheItem,
+  chatContextCache,
+  projectContextCache,
+  invalidateChatCache,
+} from '@/lib/chat-cache';
 
-export type ChatCacheItem = {
-  task: Task;
-  members: Member[];
-  channels: { id: string; name: string }[];
-  isAdmin: boolean;
-  initialMessages: MessageWithReads[];
-  participantCount: number;
-  timestamp: number;
-};
+export type { Member, ChatCacheItem };
+export { chatContextCache, projectContextCache, invalidateChatCache };
 
-// Global in-memory cache across chat switches and prefetching
-export const chatContextCache = new Map<string, ChatCacheItem>();
-export const projectContextCache = new Map<string, { members: Member[]; channels: { id: string; name: string }[] }>();
-
-// Prefetch a chat's context in the background so it opens in 0ms when clicked
+// Prefetch a chat's context in the background so it opens in 0ms when clicked.
+// Uses a short 15s freshness window so it never holds onto stale messages.
 export function prefetchChat(taskId: string) {
   if (typeof window === 'undefined') return;
   const existing = chatContextCache.get(taskId);
-  if (existing && Date.now() - existing.timestamp < 300000) return;
+  if (existing && Date.now() - existing.timestamp < 15000) return;
 
   fetch(`/api/chat-context?taskId=${taskId}`)
     .then((r) => (r.ok ? r.json() : null))
@@ -123,9 +114,9 @@ export default function ChatPane({
 
     let cancelled = false;
 
-    // Check if this chat is already cached in memory
+    // Render optimistic cached UI immediately for 0ms transition
     const cached = chatContextCache.get(taskId);
-    if (cached && Date.now() - cached.timestamp < 300000) {
+    if (cached) {
       setTask(cached.task);
       setMembers(cached.members);
       setChannels(cached.channels);
@@ -133,7 +124,10 @@ export default function ChatPane({
       setInitialMessages(cached.initialMessages);
       setParticipantCount(cached.participantCount);
       setLoading(false);
-      return;
+      // If cached less than 5s ago (e.g. fresh touch prefetch), skip immediate refetch
+      if (Date.now() - cached.timestamp < 5000) {
+        return;
+      }
     }
 
     // If initialTask is supplied, show the task header & UI optimistically on frame 1
