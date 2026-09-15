@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { MessageCircle } from 'lucide-react';
 import TaskDrawer from './task-drawer';
-import type { Task } from '@/lib/types';
+import type { Task, MessageWithReads } from '@/lib/types';
 
 type Member = {
   id: string;
@@ -29,6 +29,8 @@ export default function ChatPane({
   const [members, setMembers] = useState<Member[]>([]);
   const [channels, setChannels] = useState<{ id: string; name: string }[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [initialMessages, setInitialMessages] = useState<MessageWithReads[]>([]);
+  const [participantCount, setParticipantCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -40,11 +42,33 @@ export default function ChatPane({
     const load = async () => {
       setLoading(true);
 
-      const { data: t } = await supabase
+      // Start fetching task, messages, participants, and user profile concurrently
+      const taskPromise = supabase
         .from('tasks')
         .select('*, assignee:profiles!tasks_assignee_id_fkey(id, full_name, email, avatar_url)')
         .eq('id', taskId)
         .single();
+
+      const messagesPromise = supabase
+        .from('messages')
+        .select(
+          '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
+        )
+        .eq('task_id', taskId)
+        .order('created_at', { ascending: true });
+
+      const participantsPromise = supabase
+        .from('task_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('task_id', taskId);
+
+      const profilePromise = supabase
+        .from('profiles')
+        .select('is_super_admin')
+        .eq('id', currentUserId)
+        .single();
+
+      const { data: t } = await taskPromise;
 
       if (cancelled) return;
       if (!t) {
@@ -54,7 +78,14 @@ export default function ChatPane({
         return;
       }
 
-      const [{ data: mem }, { data: ch }, { data: me }] = await Promise.all([
+      // Fetch project members and channels concurrently with remaining queries
+      const [
+        { data: mem },
+        { data: ch },
+        { data: me },
+        { data: msgs },
+        { count: pCount },
+      ] = await Promise.all([
         supabase
           .from('project_members')
           .select('id, role, user_id, profiles(id, full_name, email, avatar_url)')
@@ -64,7 +95,9 @@ export default function ChatPane({
           .select('id, name')
           .eq('project_id', t.project_id)
           .order('position', { ascending: true }),
-        supabase.from('profiles').select('is_super_admin').eq('id', currentUserId).single(),
+        profilePromise,
+        messagesPromise,
+        participantsPromise,
       ]);
 
       if (cancelled) return;
@@ -73,6 +106,8 @@ export default function ChatPane({
       setMembers((mem as any) || []);
       setChannels((ch as any) || []);
       setIsAdmin(myMembership?.role === 'admin' || !!me?.is_super_admin);
+      setInitialMessages((msgs as any) || []);
+      setParticipantCount(pCount ?? 0);
       setLoading(false);
     };
     load();
@@ -135,6 +170,8 @@ export default function ChatPane({
       channels={channels}
       currentUserId={currentUserId}
       isAdmin={isAdmin}
+      initialMessages={initialMessages}
+      initialParticipantCount={participantCount}
       onClose={clear}
       onStatusChange={handleStatusChange}
       onTaskMoved={() => clear()}

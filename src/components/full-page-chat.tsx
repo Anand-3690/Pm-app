@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import TaskDrawer from './task-drawer';
-import type { Task } from '@/lib/types';
+import type { Task, MessageWithReads } from '@/lib/types';
 
 type Member = {
   id: string;
@@ -21,12 +21,16 @@ export default function FullPageChat({
   channels,
   currentUserId,
   isAdmin,
+  initialMessages,
+  initialParticipantCount,
 }: {
   task: Task;
   members: Member[];
   channels: { id: string; name: string }[];
   currentUserId: string;
   isAdmin: boolean;
+  initialMessages?: MessageWithReads[];
+  initialParticipantCount?: number;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -46,6 +50,8 @@ export default function FullPageChat({
       channels={channels}
       currentUserId={currentUserId}
       isAdmin={isAdmin}
+      initialMessages={initialMessages}
+      initialParticipantCount={initialParticipantCount}
       onClose={backToList}
       onTaskMoved={backToList}
       onTaskDeleted={backToList}

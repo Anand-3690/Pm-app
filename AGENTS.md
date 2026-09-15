@@ -47,7 +47,7 @@ CI builds **two** images: the app and `pm-app-push-worker`. A broken build fails
 
 2. **`window.*` only inside event handlers.** A `window.location.href` (or any `window`) at a component's top level crashes the production build with `window is not defined` during prerender. For redirects that must run at render/module level, use Next's `redirect()` from `next/navigation`. (This exact bug broke `/signup` — it now uses `redirect('/login')`.)
 
-3. **The push worker MUST reach Supabase over the internal Docker network** (`http://supabase-kong:8000`), not the public `https://api.sevak.live`. Over the public URL the realtime websocket connects but `postgres_changes` never flow back — notifications silently die. The worker joins the external `supabase_default` network in `docker-compose.yaml` and reads `SUPABASE_INTERNAL_URL`. **This breaks silently whenever Docker networks are recreated** (e.g. moving the project folder). If notifications stop, check this first.
+3. **The app server AND push worker MUST reach Supabase over the internal Docker network** (`http://supabase-kong:8000`), not the public `https://api.sevak.live`. Over the public URL the realtime websocket connects but `postgres_changes` never flow back (for the push worker), and Next.js server components/middleware incur a massive 250–800ms DNS/TLS hairpinning delay per query (for the app container). Both join the external `supabase_default` network in `docker-compose.yaml` and read `SUPABASE_INTERNAL_URL`. **This breaks silently whenever Docker networks are recreated** (e.g. moving the project folder). If notifications stop or server routes become slow, check this first.
 
 4. **`public/sw.js` owns BOTH caching AND push.** It must contain a `push` listener (calls `self.registration.showNotification`) and a `notificationclick` listener. A past rewrite for auto-update dropped these and pushes silently vanished. Any edit to `sw.js` must preserve both.
 
@@ -96,6 +96,7 @@ CI builds **two** images: the app and `pm-app-push-worker`. A broken build fails
 Schema was historically applied directly to prod via `psql`. We have started versioning migrations in `migrations/`:
 - `migrations/000_base_schema.sql` — complete baseline schema dump from production Postgres 17 (tables, functions, triggers, policies).
 - `migrations/001_tasks_replica_identity.sql` — sets `REPLICA IDENTITY FULL` on `tasks` so Supabase Realtime sends previous row values to `worker/index.mjs` on UPDATE events.
+- `migrations/002_chat_performance_indexes.sql` — composite indexes on `messages(task_id, created_at)`, `tasks(project_id)`, `message_reads(user_id)`, and `messages(sender_id)` for sub-millisecond chat retrieval.
 If you add schema, put the `.sql` in `migrations/` and note it here.
 
 ---

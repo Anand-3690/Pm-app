@@ -5,8 +5,13 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
+    environment:
+      - SUPABASE_INTERNAL_URL=http://supabase-kong:8000
     ports:
       - "127.0.0.1:3001:3000"
+    networks:
+      - default
+      - supabase_default
     pull_policy: always
   push-worker:
     image: ghcr.io/anand-3690/pm-app-push-worker:latest

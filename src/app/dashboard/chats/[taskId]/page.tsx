@@ -24,26 +24,43 @@ export default async function ChatTaskPage({
 
   if (!task) redirect('/dashboard/chats');
 
-  // Members of the task's project (drawer needs these)
-  const { data: members } = await supabase
-    .from('project_members')
-    .select('id, role, user_id, profiles(id, full_name, email, avatar_url)')
-    .eq('project_id', task.project_id);
-
-  // Channels of the project (for the move menu)
-  const { data: channels } = await supabase
-    .from('channels')
-    .select('id, name')
-    .eq('project_id', task.project_id)
-    .order('position', { ascending: true });
+  // Fetch project context, initial messages, and participant count concurrently on the server
+  const [
+    { data: members },
+    { data: channels },
+    { data: me },
+    { data: initialMessages },
+    { count: participantCount },
+  ] = await Promise.all([
+    supabase
+      .from('project_members')
+      .select('id, role, user_id, profiles(id, full_name, email, avatar_url)')
+      .eq('project_id', task.project_id),
+    supabase
+      .from('channels')
+      .select('id, name')
+      .eq('project_id', task.project_id)
+      .order('position', { ascending: true }),
+    supabase
+      .from('profiles')
+      .select('is_super_admin')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('messages')
+      .select(
+        '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
+      )
+      .eq('task_id', task.id)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('task_participants')
+      .select('*', { count: 'exact', head: true })
+      .eq('task_id', task.id),
+  ]);
 
   // Is the user an admin of this project?
   const myMembership = (members || []).find((m: any) => m.user_id === user.id);
-  const { data: me } = await supabase
-    .from('profiles')
-    .select('is_super_admin')
-    .eq('id', user.id)
-    .single();
   const isAdmin = myMembership?.role === 'admin' || !!me?.is_super_admin;
 
   return (
@@ -53,6 +70,8 @@ export default async function ChatTaskPage({
       channels={(channels as any) || []}
       currentUserId={user.id}
       isAdmin={isAdmin}
+      initialMessages={(initialMessages as any) || []}
+      initialParticipantCount={participantCount ?? 0}
     />
   );
 }

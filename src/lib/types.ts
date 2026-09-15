@@ -54,5 +54,7 @@ export type Message = {
   created_at: string;
   sender?: Profile;
   reply_to?: Message;
-  avatar_url: string | null
+  avatar_url: string | null;
 };
+
+export type MessageWithReads = Message & { reads?: { user_id: string }[] };

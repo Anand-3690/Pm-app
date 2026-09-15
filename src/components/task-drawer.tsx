@@ -11,7 +11,7 @@ import { useSignedUrls } from '@/lib/use-signed-urls';
 import { useSwipeToReply } from '@/lib/use-swipe-to-reply';
 import TaskMediaPanel from './task-media-panel';
 import TaskParticipants from './task-participants';
-import type { Task, Message } from '@/lib/types';
+import type { Task, Message, MessageWithReads } from '@/lib/types';
 import Avatar from './avatar';
 
 type Member = {
@@ -20,8 +20,6 @@ type Member = {
   user_id: string;
   profiles: { id: string; full_name: string | null; email: string | null };
 };
-
-type MessageWithReads = Message & { reads?: { user_id: string }[] };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -97,6 +95,8 @@ export default function TaskDrawer({
   onTaskDeleted,
   fullPage = false,
   embedded = false,
+  initialMessages,
+  initialParticipantCount,
 }: {
   task: Task;
   members: Member[];
@@ -109,10 +109,12 @@ export default function TaskDrawer({
   onTaskDeleted?: (taskId: string) => void;     // ADD
   fullPage?: boolean;
   embedded?: boolean;
+  initialMessages?: MessageWithReads[];
+  initialParticipantCount?: number;
 }) {
   const supabase = createClient();
-  const [messages, setMessages] = useState<MessageWithReads[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [messages, setMessages] = useState<MessageWithReads[]>(initialMessages ?? []);
+  const [loading, setLoading] = useState(!initialMessages);
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [sending, setSending] = useState(false);
@@ -121,7 +123,9 @@ export default function TaskDrawer({
   const [menuOpen, setMenuOpen] = useState(false);
   const [moving, setMoving] = useState(false);
   const canManage = isAdmin || task.created_by === currentUserId;
-  const initialIdsRef = useRef<Set<string> | null>(null);
+  const initialIdsRef = useRef<Set<string> | null>(
+    initialMessages ? new Set(initialMessages.map((m) => m.id)) : null
+  );
 
   const moveToChannel = async (channelId: string) => {
     if (task.is_channel_chat) return;
@@ -157,7 +161,7 @@ export default function TaskDrawer({
 
   const signedUrls = useSignedUrls(supabase, messages);
 
-  const [participantCount, setParticipantCount] = useState(0);
+  const [participantCount, setParticipantCount] = useState(initialParticipantCount ?? 0);
   const profileById = (id: string) => members.find((m) => m.user_id === id)?.profiles;
   const recipientCount = Math.max(0, participantCount - 1); // participants except the sender
 
@@ -172,28 +176,37 @@ export default function TaskDrawer({
     let readsChannel: ReturnType<typeof supabase.channel>;
 
     const load = async () => {
+      const [{ count }, { data }] = await Promise.all([
+        initialParticipantCount !== undefined
+          ? Promise.resolve({ count: initialParticipantCount })
+          : supabase
+              .from('task_participants')
+              .select('*', { count: 'exact', head: true })
+              .eq('task_id', task.id),
+        initialMessages
+          ? Promise.resolve({ data: initialMessages })
+          : supabase
+              .from('messages')
+              .select(
+                '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
+              )
+              .eq('task_id', task.id)
+              .order('created_at', { ascending: true }),
+      ]);
 
-      const { count } = await supabase
-        .from('task_participants')
-        .select('*', { count: 'exact', head: true })
-        .eq('task_id', task.id);
-      setParticipantCount(count ?? 0);
-
-      const { data } = await supabase
-        .from('messages')
-        .select(
-          '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
-        )
-        .eq('task_id', task.id)
-        .order('created_at', { ascending: true });
-
-      setMessages((data as any) || []);
-      if (initialIdsRef.current === null) {
-        initialIdsRef.current = new Set(((data as any) || []).map((m: any) => m.id));
+      if (initialParticipantCount === undefined) {
+        setParticipantCount(count ?? 0);
       }
-      setLoading(false);
+      if (!initialMessages) {
+        setMessages((data as any) || []);
+        if (initialIdsRef.current === null) {
+          initialIdsRef.current = new Set(((data as any) || []).map((m: any) => m.id));
+        }
+        setLoading(false);
+      }
 
-      const unreadFromOthers = (data || []).filter(
+      const activeList = initialMessages || (data as any) || [];
+      const unreadFromOthers = activeList.filter(
         (m: any) => m.sender_id !== currentUserId
       );
       markRead(unreadFromOthers.map((m: any) => m.id));
