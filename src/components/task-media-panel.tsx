@@ -113,6 +113,8 @@ export default function TaskMediaPanel({
                     <img
                       src={href}
                       alt={m.content || 'image'}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover transition hover:scale-105"
                     />
                   </a>

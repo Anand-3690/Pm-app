@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Camera } from 'lucide-react';
+import { compressImage } from '@/lib/image-compression';
 
 type Profile = {
   id: string;
@@ -27,10 +28,13 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
   const initials = (fullName || profile.email || '?')[0].toUpperCase();
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
     setUploading(true);
     setError(null);
+
+    // Compress avatar photo to max 512x512 WebP (avatars display at <= 64px)
+    const file = await compressImage(rawFile, { maxWidth: 512, maxHeight: 512, quality: 0.85 });
 
     const filePath = `${profile.id}/${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage

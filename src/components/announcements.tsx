@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Megaphone, Paperclip, X, Trash2, Pencil, FileText, Send } from 'lucide-react';
 import Avatar from './avatar';
+import { compressImage } from '@/lib/image-compression';
 
 const BUCKET = 'announcement-attachments';
 
@@ -127,15 +128,19 @@ export default function Announcements({
     let attachment_type: string | null = null;
 
     if (file) {
-      const path = `${projectId}/${Date.now()}-${file.name}`;
-      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
+      const isImage = file.type.startsWith('image/');
+      const uploadFile = isImage
+        ? await compressImage(file, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
+        : file;
+      const path = `${projectId}/${Date.now()}-${uploadFile.name}`;
+      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, uploadFile);
       if (upErr) {
         alert('Upload failed: ' + upErr.message);
         setPosting(false);
         return;
       }
       attachment_url = path;
-      attachment_type = file.type.startsWith('image/') ? 'image' : 'file';
+      attachment_type = isImage ? 'image' : 'file';
     }
 
     if (editingId) {
@@ -297,7 +302,7 @@ export default function Announcements({
 
                     {a.attachment_url && a.attachment_type === 'image' && href && (
                       <a href={href} target="_blank" rel="noreferrer">
-                        <img src={href} alt="" className="mt-2 max-h-64 rounded-lg object-cover" />
+                        <img src={href} alt="" loading="lazy" decoding="async" className="mt-2 max-h-64 rounded-lg object-cover" />
                       </a>
                     )}
                     {a.attachment_url && a.attachment_type === 'file' && (

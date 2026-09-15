@@ -13,6 +13,7 @@ import TaskMediaPanel from './task-media-panel';
 import TaskParticipants from './task-participants';
 import type { Task, Message, MessageWithReads } from '@/lib/types';
 import Avatar from './avatar';
+import { compressImage } from '@/lib/image-compression';
 
 type Member = {
   id: string;
@@ -287,9 +288,15 @@ export default function TaskDrawer({
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
     setUploadingFile(true);
+
+    const isImage = rawFile.type.startsWith('image/');
+    // Compress raster images to max 1920px WebP at 82% quality; non-images and SVGs remain untouched
+    const file = isImage
+      ? await compressImage(rawFile, { maxWidth: 1920, maxHeight: 1920, quality: 0.82 })
+      : rawFile;
 
     const filePath = `${task.id}/${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage
@@ -301,8 +308,6 @@ export default function TaskDrawer({
       setUploadingFile(false);
       return;
     }
-
-    const isImage = file.type.startsWith('image/');
 
     // Store the object PATH, not an absolute URL. URLs are minted at render
     // time via createSignedUrl, so attachments survive host/protocol changes.
@@ -805,7 +810,8 @@ function ChatAttachmentImage({ href, alt }: { href: string; alt: string }) {
       <img
         src={href}
         alt={alt}
-        loading="eager"
+        loading="lazy"
+        decoding="async"
         onLoad={() => setLoaded(true)}
         className={`mb-1 max-h-72 w-auto max-w-full rounded-lg object-contain shadow-sm transition-opacity duration-200 ${
           loaded ? 'block opacity-100' : 'hidden'
