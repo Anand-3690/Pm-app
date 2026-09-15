@@ -1,6 +1,6 @@
 // Bump this string on any deploy where you want caches fully cleared.
 // The build hash in filenames handles JS/CSS; this covers the SW's own cache.
-const CACHE_NAME = 'pm-app-v2';
+const CACHE_NAME = 'pm-app-v3';
 const PRECACHE_URLS = ['/offline'];
 
 self.addEventListener('install', (event) => {
