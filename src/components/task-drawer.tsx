@@ -346,7 +346,7 @@ export default function TaskDrawer({
     }
 
     if (msg.attachment_type === 'file') {
-      const shell = isMine ? 'bg-white/80 border border-[#ffd7ba]/60' : 'bg-chip';
+      const shell = isMine ? 'bg-white/80 border border-bubble-line/60' : 'bg-chip';
       if (!href) {
         return (
           <div
