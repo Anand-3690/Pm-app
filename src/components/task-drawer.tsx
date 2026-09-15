@@ -845,21 +845,29 @@ function MessageRow({
 
 function ChatAttachmentImage({ href, alt }: { href: string; alt: string }) {
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, [href]);
+
   return (
     <a href={href} target="_blank" rel="noreferrer" className="relative block overflow-hidden rounded-lg">
       {!loaded && (
-        <div className="flex h-44 w-56 max-w-full items-center justify-center rounded-lg bg-black/5 animate-pulse text-ink-4">
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/5 animate-pulse text-ink-4">
           <ImageIcon size={22} className="opacity-40 animate-pulse" />
         </div>
       )}
       <img
+        ref={imgRef}
         src={href}
         alt={alt}
-        loading="lazy"
         decoding="async"
         onLoad={() => setLoaded(true)}
         className={`mb-1 max-h-72 w-auto max-w-full rounded-lg object-contain shadow-sm transition-opacity duration-200 ${
-          loaded ? 'block opacity-100' : 'hidden'
+          loaded ? 'opacity-100' : 'opacity-0 min-h-[160px] min-w-[200px]'
         }`}
       />
     </a>
