@@ -35,7 +35,13 @@ export default function FullPageChat({
   const router = useRouter();
   const supabase = createClient();
   const [currentTask, setCurrentTask] = useState<Task>(task);
-  const backToList = () => router.push('/dashboard/chats');
+  const backToList = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/dashboard/chats');
+    }
+  };
 
   const handleStatusChange = async (status: Task['status']) => {
     setCurrentTask((prev) => ({ ...prev, status }));

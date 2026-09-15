@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useTransition } from 'react';
 import ChatList, { type ChatRow } from './chat-list';
 import ChatPane from './chat-pane';
 
-// Desktop: two-pane (list left, chat right). Mobile: list only — tapping a
-// chat navigates to the full-page route as before.
+// Desktop: two-pane (list left, chat right).
+// Mobile: instant in-place client transition (opens chat full-screen with 0ms delay,
+// preserving the chat list scroll position and expanded accordion state).
 export default function ChatsTwoPane({
   rows,
   currentUserId,
@@ -16,26 +16,61 @@ export default function ChatsTwoPane({
   currentUserId: string;
   initialOpenTaskId: string | null;
 }) {
-  const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(initialOpenTaskId);
+  const [, startTransition] = useTransition();
 
-  // Called when a chat row is clicked. On desktop we select (right pane);
-  // on mobile we navigate to the full-page chat. We detect via matchMedia.
+  // Listen to browser popstate (e.g. mobile back gesture or Android back button)
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      startTransition(() => {
+        if (e.state?.openChat) {
+          setSelectedId(e.state.openChat);
+        } else {
+          setSelectedId(null);
+        }
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Called when a chat row is clicked
   const handleOpen = (taskId: string) => {
     const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
-    if (isDesktop) {
+
+    startTransition(() => {
       setSelectedId(taskId);
-      // reflect in URL for refresh/deep-link, without a full navigation
-      window.history.replaceState(null, '', `/dashboard/chats?open=${taskId}`);
+    });
+
+    if (isDesktop) {
+      // Reflect in URL for desktop deep-linking/refresh without a full navigation
+      window.history.replaceState({ openChat: taskId }, '', `/dashboard/chats?open=${taskId}`);
     } else {
-      router.push(`/dashboard/chats/${taskId}`);
+      // Push history state on mobile so the system back gesture / back button works naturally
+      window.history.pushState({ openChat: taskId }, '', `/dashboard/chats/${taskId}`);
     }
   };
 
   const clearSelection = () => {
-    setSelectedId(null);
-    window.history.replaceState(null, '', '/dashboard/chats');
+    startTransition(() => {
+      setSelectedId(null);
+    });
+
+    const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+    if (isDesktop) {
+      window.history.replaceState(null, '', '/dashboard/chats');
+    } else {
+      // If mobile pushed a history entry for the chat, pop it back
+      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/chats/')) {
+        window.history.back();
+      } else {
+        window.history.replaceState(null, '', '/dashboard/chats');
+      }
+    }
   };
+
+  const selectedChatRow = rows.find((r) => r.task_id === selectedId);
 
   return (
     <div className="lg:flex lg:h-[calc(100vh-3.5rem)] lg:overflow-hidden">
@@ -44,10 +79,27 @@ export default function ChatsTwoPane({
         <ChatList rows={rows} currentUserId={currentUserId} onOpen={handleOpen} selectedId={selectedId} />
       </div>
 
-      {/* Right: chat pane — desktop only. Mobile uses the full-page route. */}
-      <div className="hidden lg:flex lg:flex-1 lg:flex-col lg:overflow-hidden">
-        <ChatPane taskId={selectedId} currentUserId={currentUserId} onCleared={clearSelection} />
-      </div>
+      {/* Right: chat pane.
+          Desktop: right column in two-pane layout.
+          Mobile: full-screen overlay when selectedId != null (0ms transition, no page reloads).
+      */}
+      {selectedId && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-ground lg:static lg:z-auto lg:flex lg:flex-1 lg:overflow-hidden">
+          <ChatPane
+            taskId={selectedId}
+            currentUserId={currentUserId}
+            onCleared={clearSelection}
+            projectId={selectedChatRow?.project_id}
+            fullPageOnMobile
+          />
+        </div>
+      )}
+
+      {!selectedId && (
+        <div className="hidden lg:flex lg:flex-1 lg:flex-col lg:overflow-hidden">
+          <ChatPane taskId={null} currentUserId={currentUserId} onCleared={clearSelection} />
+        </div>
+      )}
     </div>
   );
 }

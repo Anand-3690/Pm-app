@@ -15,16 +15,36 @@ export default async function ChatTaskPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // Task + project context
-  const { data: task } = await supabase
+  // Launch task, messages, participant count, and user profile concurrently
+  const taskPromise = supabase
     .from('tasks')
     .select('*, assignee:profiles!tasks_assignee_id_fkey(id, full_name, email, avatar_url)')
     .eq('id', taskId)
     .single();
 
+  const messagesPromise = supabase
+    .from('messages')
+    .select(
+      '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
+    )
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: true });
+
+  const participantsPromise = supabase
+    .from('task_participants')
+    .select('*', { count: 'exact', head: true })
+    .eq('task_id', taskId);
+
+  const mePromise = supabase
+    .from('profiles')
+    .select('is_super_admin')
+    .eq('id', user.id)
+    .single();
+
+  const { data: task } = await taskPromise;
   if (!task) redirect('/dashboard/chats');
 
-  // Fetch project context, initial messages, and participant count concurrently on the server
+  // Fetch project members and channels concurrently with the remaining running promises
   const [
     { data: members },
     { data: channels },
@@ -41,22 +61,9 @@ export default async function ChatTaskPage({
       .select('id, name')
       .eq('project_id', task.project_id)
       .order('position', { ascending: true }),
-    supabase
-      .from('profiles')
-      .select('is_super_admin')
-      .eq('id', user.id)
-      .single(),
-    supabase
-      .from('messages')
-      .select(
-        '*, sender:profiles!messages_sender_id_fkey(id, full_name, email, avatar_url), reads:message_reads(user_id)'
-      )
-      .eq('task_id', task.id)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('task_participants')
-      .select('*', { count: 'exact', head: true })
-      .eq('task_id', task.id),
+    mePromise,
+    messagesPromise,
+    participantsPromise,
   ]);
 
   // Is the user an admin of this project?
