@@ -37,6 +37,10 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/icons/') ||
     request.nextUrl.pathname === '/apple-touch-icon.png';
 
+  if (!user && request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   if (
     !user &&
     !isPublicAsset &&
